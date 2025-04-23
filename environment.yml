@@ -1,0 +1,26 @@
+name: VollVertnuettelt
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - ipython
+  - jupyter
+  - jupyterlab
+  - pandas
+  - numpy
+  - matplotlib
+  - seaborn
+  - scipy
+  - scikit-learn
+  - graphviz
+  - python-graphviz
+  - py-xgboost
+  - pip:
+    - sidetable
+    - torch
+    - keras
+    - nltk
+    - pmdarima
+    - tensorflow
