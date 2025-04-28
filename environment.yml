@@ -24,3 +24,5 @@ dependencies:
     - nltk
     - pmdarima
     - tensorflow
+    - twscrape
+    - python-dotenv
