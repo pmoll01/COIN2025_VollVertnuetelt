@@ -166,15 +166,4 @@ optuna (optional for tuning)
 * Change the target to **directional movement (classification)**.
 * Add **rolling statistics** as additional features.
 * Integrate **Optuna** for hyperparameter tuning.
-* Use **W\&B** or **MLflow** for experiment tracking.
-
----
-
-## 🤝 Collaboration & Modularity
-
-This repository is structured for clean, modular development:
-
-* Each component (data, model, training, inference) is isolated.
-* Easily extendable to multiple assets (SP500, Nasdaq, etc.)
-* Ideal for research, experimentation, or production ML pipelines.
-
+* Use **MLflow** for experiment tracking.
