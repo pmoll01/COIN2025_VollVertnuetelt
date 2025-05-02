@@ -1,0 +1,6 @@
+pytorch-forecasting
+pytorch-lightning
+optuna
+pandas
+numpy
+matplotlib
