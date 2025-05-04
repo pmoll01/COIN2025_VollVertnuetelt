@@ -31,3 +31,5 @@ dependencies:
     - tqdm
     - transformers
     - plotly
+    - nrclex
+    - nltk
