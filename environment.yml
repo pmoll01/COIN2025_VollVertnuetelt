@@ -17,7 +17,6 @@ dependencies:
   - graphviz
   - python-graphviz
   - py-xgboost
-  - wordcloud
   - pip:
     - sidetable
     - torch
@@ -27,6 +26,7 @@ dependencies:
     - tensorflow
     - twscrape
     - python-dotenv
+    - wordcloud
     - langdetect
     - tqdm
     - transformers
