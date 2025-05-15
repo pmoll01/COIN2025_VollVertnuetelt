@@ -45,8 +45,11 @@ def run_inference(
     # Ensure 'date' is datetime
     merged_df["date"] = pd.to_datetime(merged_df["date"])
 
-    # 3. Prepare inference window: last `encoder_len` observations
-    inference_df = merged_df.tail(encoder_len)
+    # 3. Prepare inference window: last encoder + decoder observations
+    window = encoder_len + prediction_len
+    if len(merged_df) < window:
+        raise ValueError(f"Need at least {window} rows for inference, but only {len(merged_df)} available.")
+    inference_df = merged_df.tail(window)
 
     # 4. Create inference TimeSeriesDataSet (no randomization, prediction mode)
     inference_dataset = TimeSeriesDataSet.from_dataset(
@@ -63,13 +66,35 @@ def run_inference(
 
     # 5. Load trained TFT model from checkpoint
     model = TemporalFusionTransformer.load_from_checkpoint(checkpoint_path)
+    model.eval()  # sicherstellen, dass wir im Inferenz‐Modus sind
 
     # 6. Create a Trainer and run prediction
-    trainer = Trainer(accelerator="auto", devices=1)
+    """    trainer = Trainer(accelerator="auto", devices=1)
+    raw_predictions = trainer.predict(
+        model,
+        dataloaders=inference_loader,
+    )"""
+    from pytorch_forecasting.models.base_model import PredictCallback
+
+    predict_callback = PredictCallback(
+        mode="prediction",
+        return_x=False,
+        return_index=False,
+        return_decoder_lengths=False,
+        return_y=False,
+    )
+
+    trainer = Trainer(
+        accelerator="auto",
+        devices=1,
+        callbacks=[predict_callback],  # hier einfügen
+    )
+
     raw_predictions = trainer.predict(
         model,
         dataloaders=inference_loader,
     )
+    # nun funktioniert predict_step ohne IndexError
 
     # 7. Extract and concatenate prediction tensors
     preds = torch.cat([x["prediction"] for x in raw_predictions]).detach().cpu().numpy()
