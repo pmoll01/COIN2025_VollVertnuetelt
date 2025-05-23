@@ -97,7 +97,7 @@ This script:
 ## 🔍 Running Inference
 
 ```bash
-python predict/inference.py
+python predict/tft_inference.py
 ```
 
 This script:
