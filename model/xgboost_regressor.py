@@ -1,24 +1,26 @@
 import os
 import joblib
-from xgboost import XGBRegressor
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error, r2_score
+import pandas as pd
 import matplotlib.pyplot as plt
-from xgboost import plot_importance
-from data.create_dataset import create_dataset
+from xgboost import XGBRegressor, plot_importance
+from sklearn.metrics import mean_squared_error, r2_score, accuracy_score, classification_report
 
-# Daten laden
-df = create_dataset("data/twitter_data/final_daily_df.csv",
-                    "data/finance_data/financeData_target_variables.csv")
+# 📥 CSVs laden
+train_df = pd.read_csv("data/processed/train.csv", parse_dates=["date"])
+val_df = pd.read_csv("data/processed/val.csv", parse_dates=["date"])
+test_df = pd.read_csv("data/processed/test.csv", parse_dates=["date"])
 
-# Features und Ziel extrahieren
-X = df.drop(columns=["date", "target"])
-y = df["target"]
+# 📊 Features und Ziel extrahieren
+X_train = train_df.drop(columns=["date", "target"])
+y_train = train_df["target"]
 
-# Train/Test-Split
-x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
+X_val = val_df.drop(columns=["date", "target"])
+y_val = val_df["target"]
 
-# Modell definieren
+X_test = test_df.drop(columns=["date", "target"])
+y_test = test_df["target"]
+
+# 🔧 Modell definieren
 model = XGBRegressor(
     n_estimators=200,
     max_depth=4,
@@ -28,21 +30,36 @@ model = XGBRegressor(
     random_state=42
 )
 
-# Training
-model.fit(x_train, y_train)
+# 🧠 Training
+model.fit(X_train, y_train, eval_set=[(X_val, y_val)], verbose=False)
 
-# Vorhersage und Bewertung
-y_pred = model.predict(x_test)
-print("MSE:", mean_squared_error(y_test, y_pred))
-print("R² Score:", r2_score(y_test, y_pred))
+# 📈 Vorhersage und Bewertung
+y_pred = model.predict(X_test)
+mse = mean_squared_error(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
 
-# Feature Importance anzeigen
+print("MSE:", round(mse, 4))
+print("R² Score:", round(r2, 4))
+
+# 🔍 Feature Importance anzeigen
 plot_importance(model, max_num_features=15)
 plt.title("Wichtigste Merkmale für Kursveränderung")
 plt.tight_layout()
 plt.show()
 
-
-# 📁 Speichern
-os.makedirs("models", exist_ok=True)
+# 💾 Modell speichern
+os.makedirs("models/xgboost", exist_ok=True)
 joblib.dump(model, "models/xgboost/xgboost_model.joblib")
+
+# ➕ Richtungsbasierte Bewertung
+# Vorzeichen (Positiv/Negativ) bestimmen
+y_test_sign = y_test.apply(lambda x: 1 if x > 0 else 0)
+y_pred_sign = pd.Series(y_pred).apply(lambda x: 1 if x > 0 else 0)
+
+# 🎯 Genauigkeit der Richtung
+directional_accuracy = accuracy_score(y_test_sign, y_pred_sign)
+print("📈 Richtungsgenauigkeit (Up/Down):", round(directional_accuracy, 4))
+
+# Optional: Report mit Precision, Recall etc.
+print("\n📋 Klassifikationsreport (basierend auf Richtung):")
+print(classification_report(y_test_sign, y_pred_sign, target_names=["Fallend", "Steigend"]))

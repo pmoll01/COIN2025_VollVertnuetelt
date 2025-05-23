@@ -1,19 +1,25 @@
 import joblib
 import pandas as pd
-import sys
 
-# Modell laden
+# 📦 Modell laden
 model = joblib.load("models/xgboost/xgboost_model.joblib")
 
-# Beispielhafte Vorhersagedaten laden
-# (Hier kannst du auch eine neue CSV reinladen)
-df = pd.read_csv("data/twitter_data/final_daily_df.csv")
+# 📄 Testdaten laden
+df = pd.read_csv("data/processed/test.csv", parse_dates=["date"])
 
-# Nur die letzten n Zeilen oder beliebige Auswahl
-# Hier z.B. letzte Zeile für aktuelle Vorhersage
-X_input = df.drop(columns=["date"]).tail(1)
+# 🧹 Nur die Features extrahieren (letzte Zeile für Input)
+latest_row = df.tail(1)
 
-# Vorhersage
+# Features für das Modell
+X_input = latest_row.drop(columns=["date", "target"])
 prediction = model.predict(X_input)
 
-print("Vorhergesagte Kursänderung in %:", prediction[0])
+# 📈 Ausgabe der Vorhersage
+print("📊 Vorhergesagte Kursänderung in %:", round(prediction[0], 4))
+
+# ✅ Tatsächlicher Wert, falls vorhanden
+if "target" in latest_row.columns and pd.notna(latest_row["target"].values[0]):
+    actual_value = latest_row["target"].values[0]
+    print("✅ Tatsächliche Kursänderung in %:", round(actual_value, 4))
+else:
+    print("ℹ️ Kein tatsächlicher Zielwert in dieser Zeile vorhanden.")
