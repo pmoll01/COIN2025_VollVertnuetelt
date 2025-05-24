@@ -3,7 +3,7 @@
 Inference script for a trained Temporal Fusion Transformer (TFT) model.
 
 Usage:
-    python inference.py --features data/twitter_data/musk_twitter_sentiment.csv \
+    python tft_inference.py --features data/twitter_data/musk_twitter_sentiment.csv \
                        --targets data/finance_data/financeData_target_variables.csv \
                        --checkpoint outputs/checkpoints/tft_model.ckpt \
                        --output outputs/predictions.csv \

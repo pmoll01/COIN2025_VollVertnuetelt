@@ -1,4 +1,4 @@
-from predict.inference import model, val_loader
+from predict.tft_inference import model, val_loader
 import matplotlib.pyplot as plt
 
 # Feature-Importances anzeigen
