@@ -33,3 +33,4 @@ dependencies:
     - plotly
     - nrclex
     - nltk
+    - spacy
