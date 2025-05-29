@@ -38,6 +38,30 @@ def merge_dataset(features_path, targets_path, target_column="btc_change"):
     # Sortieren nach Zeit
     merged_df = merged_df.sort_values("date").reset_index(drop=True)
 
+    # delete all rows where column 'tweet_count' is 0
+    merged_df = merged_df[merged_df["tweet_count"] > 0].reset_index(drop=True)
+    # normalize these columns tesla,tsla,stock,market,price,profit,loss,revenue,inflation,interest,bitcoin,dogecoin,crypto,ethereum,spacex,model,cybertruck,starship,buy,sell
+
+    columns_to_normalize  = [
+        "tesla", "tsla", "stock", "market", "price", "profit",
+        "loss", "revenue", "inflation", "interest", "bitcoin",
+        "dogecoin", "crypto", "ethereum", "spacex", "model",
+        "cybertruck", "starship", "buy", "sell"
+    ]
+    for column in columns_to_normalize:
+        if column in merged_df.columns:
+            # Normalize the column by dividing by the maximum value
+            max_value = merged_df[column].max()
+            if max_value > 0:
+                merged_df[column] = merged_df[column] / max_value
+            else:
+                print(f"Warning: Maximum value for column '{column}' is 0, skipping normalization.")
+    # for all values in the dataset if value is null set it to 0
+    merged_df.fillna(0, inplace=True)
+
+    # save the merged dataset under processed/full_dataset.csv
+    merged_df.to_csv("data/processed/full_dataset.csv", index=False)
+
     return merged_df
 
 def train_val_test_split(df, train_size=0.7, val_size=0.15, test_size=0.15):
@@ -81,7 +105,7 @@ def save_datasets(train_df, val_df, test_df):
 
 if __name__ == "__main__":
     # Merge the datasets
-    merged_df = merge_dataset("data/twitter_data/final_daily_df.csv",
+    merged_df = merge_dataset("data/twitter_data/processed/final_daily_df.csv",
                                "data/finance_data/financeData_target_variables.csv")
 
     # Split the dataset into train, validation, and test sets
