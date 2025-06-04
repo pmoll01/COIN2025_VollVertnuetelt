@@ -5,21 +5,25 @@ import matplotlib.pyplot as plt
 from xgboost import XGBRegressor, plot_importance
 from sklearn.metrics import mean_squared_error, r2_score, accuracy_score, classification_report
 
-PHASE = 3
+PHASE = 2
 
 # 📥 CSVs laden
 train_df = pd.read_csv(f"data/processed/train_phase{PHASE}.csv", parse_dates=["date"])
 val_df = pd.read_csv(f"data/processed/val_phase{PHASE}.csv", parse_dates=["date"])
 test_df = pd.read_csv(f"data/processed/test_phase{PHASE}.csv", parse_dates=["date"])
 
+train_df = pd.read_csv(f"data/processed/train_full.csv", parse_dates=["date"])
+val_df = pd.read_csv(f"data/processed/val_full.csv", parse_dates=["date"])
+test_df = pd.read_csv(f"data/processed/test_full.csv", parse_dates=["date"])
+
 # 📊 Features und Ziel extrahieren
-X_train = train_df.drop(columns=["date", "target"])
+X_train = train_df.drop(columns=["date", "target", "direction"])
 y_train = train_df["target"]
 
-X_val = val_df.drop(columns=["date", "target"])
+X_val = val_df.drop(columns=["date", "target", "direction"])
 y_val = val_df["target"]
 
-X_test = test_df.drop(columns=["date", "target"])
+X_test = test_df.drop(columns=["date", "target", "direction"])
 y_test = test_df["target"]
 
 

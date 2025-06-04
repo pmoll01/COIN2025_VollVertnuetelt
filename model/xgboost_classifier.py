@@ -5,16 +5,16 @@ import matplotlib.pyplot as plt
 from xgboost import XGBClassifier, plot_importance
 from sklearn.metrics import accuracy_score, classification_report
 
-PHASE = 3
+PHASE = 1
 
 # 📥 CSVs laden
 train_df = pd.read_csv(f"data/processed/train_phase{PHASE}.csv", parse_dates=["date"])
 val_df = pd.read_csv(f"data/processed/val_phase{PHASE}.csv", parse_dates=["date"])
 test_df = pd.read_csv(f"data/processed/test_phase{PHASE}.csv", parse_dates=["date"])
 
-#train_df = pd.read_csv(f"data/processed/train.csv", parse_dates=["date"])
-#val_df = pd.read_csv(f"data/processed/val.csv", parse_dates=["date"])
-#test_df = pd.read_csv(f"data/processed/test.csv", parse_dates=["date"])
+#train_df = pd.read_csv(f"data/processed/train_full.csv", parse_dates=["date"])
+#val_df = pd.read_csv(f"data/processed/val_full.csv", parse_dates=["date"])
+#test_df = pd.read_csv(f"data/processed/test_full.csv", parse_dates=["date"])
 
 # 📊 Features und Ziel extrahieren
 X_train = train_df.drop(columns=["date", "direction", "target"])
@@ -71,16 +71,3 @@ plt.show()
 # 💾 Modell speichern
 os.makedirs("models/xgboost", exist_ok=True)
 joblib.dump(model, "models/xgboost/xgboost_model.joblib")
-
-# ➕ Richtungsbasierte Bewertung
-# Vorzeichen (Positiv/Negativ) bestimmen
-y_test_sign = y_test.apply(lambda x: 1 if x > 0 else 0)
-y_pred_sign = pd.Series(y_pred).apply(lambda x: 1 if x > 0 else 0)
-
-# 🎯 Genauigkeit der Richtung
-directional_accuracy = accuracy_score(y_test_sign, y_pred_sign)
-print("📈 Richtungsgenauigkeit (Up/Down):", round(directional_accuracy, 4))
-
-# Optional: Report mit Precision, Recall etc.
-print("\n📋 Klassifikationsreport (basierend auf Richtung):")
-print(classification_report(y_test_sign, y_pred_sign, target_names=["Fallend", "Steigend"]))

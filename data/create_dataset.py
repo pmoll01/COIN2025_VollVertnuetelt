@@ -122,6 +122,10 @@ if __name__ == "__main__":
     # Erstelle drei Teilmengen basierend auf Datum
     df1, df2, df3 = split_by_date_cutoffs(merged_df)
 
+    # split whole dataset into train, val, test first
+    train_df, val_df, test_df = train_val_test_split(merged_df)
+    save_datasets(train_df, val_df, test_df, postfix="_full")
+
     # Splitte und speichere jede Teilmenge
     for idx, df in enumerate([df1, df2, df3], start=1):
         if len(df) < 10:
