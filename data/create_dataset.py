@@ -61,32 +61,57 @@ def merge_dataset(features_path, targets_path, target_column="sp500_change"):
         "mean_sentiment_3d", "mean_crypto_rate_7d", "sentiment_diff_lag1",
         "target"
     ]
+
+    """final_features  = [
+        "tweet_count", "neg", "neu", "pos", "nlp_tweet_count", "polarized",
+        "anger", "disgust", "fear", "joy", "neutral", "sadness", "surprise",
+        "Extroversion", "Neuroticism", "Agreeableness", "Conscientiousness", "Openness",
+        "tesla", "tsla", "stock", "market", "price", "profit", "loss", "revenue",
+        "inflation", "interest", "bitcoin", "dogecoin", "crypto", "ethereum", "spacex",
+        "model", "cybertruck", "starship", "buy", "sell",
+        "arts_&_culture", "business_&_entrepreneurs", "celebrity_&_pop_culture", "diaries_&_daily_life",
+        "family", "fashion_&_style", "film_tv_&_video", "fitness_&_health", "food_&_dining", "gaming",
+        "learning_&_educational", "music", "news_&_social_concern", "other_hobbies", "relationships",
+        "science_&_technology", "sports", "travel_&_adventure", "youth_&_student_life",
+        "target"
+    ]"""
+
     merged_df = merged_df[["date"] + final_features].reset_index(drop=True)
 
-    # drop where sp500_change is NaN
+    # drop where some values are NaN
     merged_df.dropna(subset=["target"], inplace=True)
-
+    """
     # add column direction which is 1 if target > 0, 0 if target < 0, and 0 if target == 0
     merged_df["direction"] = merged_df["target"].apply(lambda x: 1 if x > 0 else (0 if x < 0 else 0))
     # these values should be ints
     merged_df["direction"] = merged_df["direction"].astype(int)
-
+    """
     # Save processed dataset
     merged_df.to_csv("data/processed/full_dataset.csv", index=False)
 
     return merged_df
 
 
-def train_val_test_split(df, train_size=0.7, val_size=0.15, test_size=0.15):
+def train_val_test_split(df, train_size=0.7, val_size=0.15, test_size=0.15, shuffle_train=False):
     if train_size + val_size + test_size != 1.0:
         raise ValueError("train_size + val_size + test_size must equal 1.0")
 
     train_end = int(len(df) * train_size)
     val_end = int(len(df) * (train_size + val_size))
 
-    train_df = df[:train_end].sample(frac=1, random_state=42).reset_index(drop=True)
+    if shuffle_train:
+        train_df = df[:train_end].sample(frac=1, random_state=42).reset_index(drop=True)
+    else:
+        train_df = df[:train_end].reset_index(drop=True)
+
+    # delete first 7 rows of train_df
+    train_df = train_df.iloc[7:].reset_index(drop=True)
+
     val_df = df[train_end:val_end].reset_index(drop=True)
     test_df = df[val_end:].reset_index(drop=True)
+
+    return train_df, val_df, test_df
+
 
     return train_df, val_df, test_df
 def save_datasets(train_df, val_df, test_df, postfix=""):
@@ -123,7 +148,7 @@ if __name__ == "__main__":
     df1, df2, df3 = split_by_date_cutoffs(merged_df)
 
     # split whole dataset into train, val, test first
-    train_df, val_df, test_df = train_val_test_split(merged_df)
+    train_df, val_df, test_df = train_val_test_split(merged_df, shuffle_train=False)
     save_datasets(train_df, val_df, test_df, postfix="_full")
 
     # Splitte und speichere jede Teilmenge
@@ -131,5 +156,5 @@ if __name__ == "__main__":
         if len(df) < 10:
             print(f"⚠️ Datenset {idx} hat nur {len(df)} Einträge. Überspringe Speicherung.")
             continue
-        train_df, val_df, test_df = train_val_test_split(df)
+        train_df, val_df, test_df = train_val_test_split(merged_df, shuffle_train=False)
         save_datasets(train_df, val_df, test_df, postfix=f"_phase{idx}")
