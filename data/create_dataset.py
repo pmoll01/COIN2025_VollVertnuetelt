@@ -54,31 +54,30 @@ def preprocess_dataset(df):
         "revenue", "inflation", "interest", "bitcoin", "dogecoin",
         "crypto", "ethereum", "spacex", "model", "cybertruck",
         "starship", "buy", "sell",
+        # TODO: wieder adden: "likeCount", "quoteCount", "retweetCount", "viewCount",
 
-
-
-        "sp500_close", "bitcoin_close", "nasdaq_close",
-        "sp500_volume", "bitcoin_volume", "nasdaq_volume",
-        "sp500_volatility", "bitcoin_volatility", "nasdaq_volatility",
-        "sp500_high", "sp500_low", "bitcoin_high", "bitcoin_low", "nasdaq_high", "nasdaq_low",
-        "btc_change", "sp500_change", "nasdaq_change",
-        "target_sp500_close_next",
-        "sp500_close_sma_5", "sp500_close_sma_10", "sp500_close_sma_20", "sp500_close_sma_50", "sp500_close_sma_100",
-        "sp500_close_ema_12", "sp500_close_ema_26", "sp500_close_macd_line", "sp500_close_macd_signal",
-        "sp500_close_macd_hist",
-        "sp500_close_rsi_14",
-        "sp500_close_bb_mean_20", "sp500_close_bb_upper_20", "sp500_close_bb_lower_20",
-        "sp500_atr_14", "sp500_pdi_14", "sp500_mdi_14", "sp500_dx_14", "sp500_adx_14",
-        "sp500_stoch_k_14", "sp500_stoch_d_3",
-        "sp500_obv",
-        "sp500_close_momentum_10", "sp500_close_roc_10", "sp500_close_momentum_20", "sp500_close_roc_20",
-        "sp500_cci_20", "sp500_mfi_14",
+        "sp500_close", "bitcoin_close", "nasdaq_close", "tesla_close",
+        "sp500_volume", "bitcoin_volume", "nasdaq_volume", "tesla_volume",
+        "sp500_volatility", "bitcoin_volatility", "nasdaq_volatility", "tesla_volatility",
+        "sp500_high", "sp500_low", "bitcoin_high", "bitcoin_low", "nasdaq_high", "nasdaq_low", "tesla_high", "tesla_low",
+        "btc_change", "sp500_change", "nasdaq_change", "tesla_change", "target_tesla_next",
+        "tesla_close_sma_5", "tesla_close_sma_10", "tesla_close_sma_20", "tesla_close_sma_50", "tesla_close_sma_100",
+        "tesla_close_ema_12", "tesla_close_ema_26", "tesla_close_macd_line", "tesla_close_macd_signal", "tesla_close_macd_hist",
+        "tesla_close_rsi_14", "tesla_close_bb_mean_20", "tesla_close_bb_upper_20", "tesla_close_bb_lower_20",
+        "tesla_atr_14", "tesla_pdi_14", "tesla_mdi_14", "tesla_dx_14", "tesla_adx_14",
+        "tesla_stoch_k_14", "tesla_stoch_d_3", "tesla_obv",
+        "tesla_close_momentum_10", "tesla_close_roc_10", "tesla_close_momentum_20", "tesla_close_roc_20",
+        "tesla_cci_20", "tesla_mfi_14",
         "sp500_volatility_std_10", "sp500_avg_volume_20", "sp500_volume_spike_20",
         "bitcoin_volatility_std_10", "bitcoin_avg_volume_20", "bitcoin_volume_spike_20",
         "nasdaq_volatility_std_10", "nasdaq_avg_volume_20", "nasdaq_volume_spike_20",
+        "tesla_volatility_std_10", "tesla_avg_volume_20", "tesla_volume_spike_20",
         "sp500_to_bitcoin_ratio", "sp500_bitcoin_corr_20",
         "sp500_to_nasdaq_ratio", "sp500_nasdaq_corr_20",
-        "bitcoin_to_nasdaq_ratio", "bitcoin_nasdaq_corr_20"
+        "sp500_to_tesla_ratio", "sp500_tesla_corr_20",
+        "bitcoin_to_nasdaq_ratio", "bitcoin_nasdaq_corr_20",
+        "bitcoin_to_tesla_ratio", "bitcoin_tesla_corr_20",
+        "nasdaq_to_tesla_ratio", "nasdaq_tesla_corr_20"
     ]
 
     score_features = [
@@ -93,7 +92,8 @@ def preprocess_dataset(df):
         *df.columns[40:59].tolist()
     ]
 
-    binary_features = ["no_tweets"]
+    # TODO wieder adden:
+    binary_features = [] # ["no_tweets"]
 
     # Pipelines for each feature group
     count_pipeline = Pipeline([
@@ -127,7 +127,26 @@ def preprocess_dataset(df):
     X_final = full_pipeline.fit_transform(df)
     print("final_daily_df vorbereitet, Shape:", X_final.shape)
 
-    return df
+
+    # Spaltennamen rekonstruieren
+    count_out = full_pipeline.named_steps["preprocessing"].named_transformers_["counts"].named_steps["minmax_scaler"].get_feature_names_out(count_features)
+    score_out = full_pipeline.named_steps["preprocessing"].named_transformers_["scores"].named_steps["std_scaler"].get_feature_names_out(score_features)
+    binary_out = binary_features  # Falls vorhanden, ggf. transformieren mit get_feature_names_out()
+
+    passthrough_cols = df.columns.difference(count_features + score_features + binary_features).tolist()
+
+    final_columns = (list(count_out) + list(score_out) + binary_out + passthrough_cols)
+
+    # In DataFrame umwandeln
+    df_transformed = pd.DataFrame(X_final, columns=final_columns, index=df.index)
+
+    # convert date column to datetime
+    if "date" in df.columns:
+        df_transformed["date"] = pd.to_datetime(df["date"])
+    else:
+        raise ValueError("Date column not found in the DataFrame.")
+
+    return df_transformed
 
 def train_val_test_split(df, train_size=0.7, val_size=0.15, test_size=0.15, shuffle_train=False):
     if train_size + val_size + test_size != 1.0:
@@ -182,8 +201,6 @@ if __name__ == "__main__":
                                "data/finance_data/processing_financeData_target_variables.csv")
     # ensure to show all columns
     pd.set_option('display.max_columns', None)
-    # show all columns in merged_df
-    print(merged_df.head())
 
     merged_df = preprocess_dataset(merged_df)
 
