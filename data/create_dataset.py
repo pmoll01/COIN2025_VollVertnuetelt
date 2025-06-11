@@ -1,8 +1,9 @@
 import pandas as pd
 
-def merge_dataset(features_path, targets_path, target_column="btc_change"):
+def merge_dataset(features_path, targets_path, target_column="sp500_change"):
     """
-    Merged features and targets based on date.
+    Merges features and targets based on date, computes engineered features,
+    normalizes keyword columns, filters data, and returns the final dataset.
 
     Args:
         features_path (str): Path to the CSV with tweet features.
@@ -10,14 +11,13 @@ def merge_dataset(features_path, targets_path, target_column="btc_change"):
         target_column (str): Name of the column in targets file with the target value.
 
     Returns:
-        pd.DataFrame: Merged and sorted dataset with 'target' column.
+        pd.DataFrame: Merged, feature-engineered, and sorted dataset with 'target' column.
     """
-
-    # Lade beide Datensätze
+    # Load datasets
     X_df = pd.read_csv(features_path)
     y_df = pd.read_csv(targets_path)
 
-    # Datum vereinheitlichen
+    # Standardize date columns
     X_df["date"] = pd.to_datetime(X_df["date"])
     if "Date" in y_df.columns:
         y_df["date"] = pd.to_datetime(y_df["Date"])
@@ -25,67 +25,135 @@ def merge_dataset(features_path, targets_path, target_column="btc_change"):
     else:
         y_df["date"] = pd.to_datetime(y_df["date"])
 
-    # Sicherstellen, dass Zielspalte vorhanden ist
+    # Ensure target column exists
     if target_column not in y_df.columns:
         raise ValueError(f"Target column '{target_column}' not found in y_df.")
 
-    # Nur relevante Spalten behalten und umbenennen
+    # Keep only date and target, rename target
     y_df = y_df[["date", target_column]].rename(columns={target_column: "target"})
 
-    # Merge
+    # Merge on date
     merged_df = pd.merge(X_df, y_df, on="date", how="inner")
-
-    # Sortieren nach Zeit
     merged_df = merged_df.sort_values("date").reset_index(drop=True)
+
+    # Drop rows with no NLP tweets
+    merged_df = merged_df[merged_df["nlp_tweet_count"] > 0].reset_index(drop=True)
+
+
+    # Compute engineered features
+    merged_df["polarity_ratio"] = merged_df["polarized"] / (merged_df["nlp_tweet_count"] + 1)
+    merged_df["crypto_rate"] = merged_df[["bitcoin", "dogecoin", "crypto", "ethereum"]].sum(axis=1) / (merged_df["tweet_count"] + 1)
+    merged_df["sentiment_diff"] = merged_df["pos"] - merged_df["neg"]
+    merged_df["emotion_volatility"] = merged_df[["anger", "fear", "joy", "sadness", "surprise"]].std(axis=1)
+
+    # Rolling and lag features
+    merged_df["mean_sentiment_3d"] = merged_df["sentiment_diff"].rolling(window=3).mean()
+    merged_df["mean_crypto_rate_7d"] = merged_df["crypto_rate"].rolling(window=7).mean()
+    merged_df["sentiment_diff_lag1"] = merged_df["sentiment_diff"].shift(1)
+
+    # Select final columns
+    final_features = [
+        "tweet_count", "nlp_tweet_count", "polarized", "pos", "neg",
+        "joy", "fear", "bitcoin", "crypto", "dogecoin", "buy", "sell",
+        "business_&_entrepreneurs", "science_&_technology",
+        "Openness", "Neuroticism",
+        "polarity_ratio", "crypto_rate", "sentiment_diff", "emotion_volatility",
+        "mean_sentiment_3d", "mean_crypto_rate_7d", "sentiment_diff_lag1",
+        "target"
+    ]
+
+    """final_features  = [
+        "tweet_count", "neg", "neu", "pos", "nlp_tweet_count", "polarized",
+        "anger", "disgust", "fear", "joy", "neutral", "sadness", "surprise",
+        "Extroversion", "Neuroticism", "Agreeableness", "Conscientiousness", "Openness",
+        "tesla", "tsla", "stock", "market", "price", "profit", "loss", "revenue",
+        "inflation", "interest", "bitcoin", "dogecoin", "crypto", "ethereum", "spacex",
+        "model", "cybertruck", "starship", "buy", "sell",
+        "arts_&_culture", "business_&_entrepreneurs", "celebrity_&_pop_culture", "diaries_&_daily_life",
+        "family", "fashion_&_style", "film_tv_&_video", "fitness_&_health", "food_&_dining", "gaming",
+        "learning_&_educational", "music", "news_&_social_concern", "other_hobbies", "relationships",
+        "science_&_technology", "sports", "travel_&_adventure", "youth_&_student_life",
+        "target"
+    ]"""
+
+    merged_df = merged_df[["date"] + final_features].reset_index(drop=True)
+
+    # drop where some values are NaN
+    merged_df.dropna(subset=["target"], inplace=True)
+    """
+    # add column direction which is 1 if target > 0, 0 if target < 0, and 0 if target == 0
+    merged_df["direction"] = merged_df["target"].apply(lambda x: 1 if x > 0 else (0 if x < 0 else 0))
+    # these values should be ints
+    merged_df["direction"] = merged_df["direction"].astype(int)
+    """
+    # Save processed dataset
+    merged_df.to_csv("data/processed/full_dataset.csv", index=False)
 
     return merged_df
 
-def train_val_test_split(df, train_size=0.7, val_size=0.15, test_size=0.15):
-    """
-    Splits the dataset into train, validation, and test sets.
 
-    Args:
-        df (pd.DataFrame): The dataset to split.
-        train_size (float): Proportion of the dataset to include in the train split.
-        val_size (float): Proportion of the dataset to include in the validation split.
-        test_size (float): Proportion of the dataset to include in the test split.
-
-    Returns:
-        tuple: Three DataFrames for train, validation, and test sets.
-    """
+def train_val_test_split(df, train_size=0.7, val_size=0.15, test_size=0.15, shuffle_train=False):
     if train_size + val_size + test_size != 1.0:
         raise ValueError("train_size + val_size + test_size must equal 1.0")
 
-    # Berechne die Indizes für die Splits
     train_end = int(len(df) * train_size)
     val_end = int(len(df) * (train_size + val_size))
 
-    # shuffle train set
-    train_df = df[:train_end].sample(frac=1, random_state=42).reset_index(drop=True)
+    if shuffle_train:
+        train_df = df[:train_end].sample(frac=1, random_state=42).reset_index(drop=True)
+    else:
+        train_df = df[:train_end].reset_index(drop=True)
+
+    # delete first 7 rows of train_df
+    train_df = train_df.iloc[7:].reset_index(drop=True)
+
     val_df = df[train_end:val_end].reset_index(drop=True)
     test_df = df[val_end:].reset_index(drop=True)
+
     return train_df, val_df, test_df
 
-def save_datasets(train_df, val_df, test_df):
+
+def save_datasets(train_df, val_df, test_df, postfix=""):
+    train_df.to_csv(f"data/processed/train{postfix}.csv", index=False)
+    val_df.to_csv(f"data/processed/val{postfix}.csv", index=False)
+    test_df.to_csv(f"data/processed/test{postfix}.csv", index=False)
+
+
+def split_by_date_cutoffs(df):
     """
-    Saves the train, validation, and test datasets to CSV files.
+    Erstellt drei verschiedene Subsets basierend auf den Zeitabschnitten:
+    - Bis März 2022
+    - April 2022 bis Januar 2024
+    - Ab Februar 2024
 
     Args:
-        train_df (pd.DataFrame): The training dataset.
-        val_df (pd.DataFrame): The validation dataset.
-        test_df (pd.DataFrame): The test dataset.
+        df (pd.DataFrame): Der vollständige DataFrame
+
+    Returns:
+        tuple: Drei DataFrames mit den entsprechenden Zeitbereichen
     """
-    train_df.to_csv("data/processed/train.csv", index=False)
-    val_df.to_csv("data/processed/val.csv", index=False)
-    test_df.to_csv("data/processed/test.csv", index=False)
+    df1 = df[df["date"] <= "2022-03-31"].reset_index(drop=True)
+    df2 = df[(df["date"] >= "2022-04-01") & (df["date"] <= "2024-01-31")].reset_index(drop=True)
+    df3 = df[df["date"] >= "2024-02-01"].reset_index(drop=True)
+    return df1, df2, df3
+
 
 if __name__ == "__main__":
     # Merge the datasets
-    merged_df = merge_dataset("data/twitter_data/final_daily_df.csv",
+    merged_df = merge_dataset("data/twitter_data/processed/final_daily_df.csv",
                                "data/finance_data/financeData_target_variables.csv")
 
-    # Split the dataset into train, validation, and test sets
-    train_df, val_df, test_df = train_val_test_split(merged_df)
+    # Erstelle drei Teilmengen basierend auf Datum
+    df1, df2, df3 = split_by_date_cutoffs(merged_df)
 
-    # Save the datasets
-    save_datasets(train_df, val_df, test_df)
+    # split whole dataset into train, val, test first
+    train_df, val_df, test_df = train_val_test_split(merged_df, shuffle_train=False)
+    save_datasets(train_df, val_df, test_df, postfix="_full")
+
+    # Splitte und speichere jede Teilmenge
+    for idx, df in enumerate([df1, df2, df3], start=1):
+        if len(df) < 10:
+            print(f"⚠️ Datenset {idx} hat nur {len(df)} Einträge. Überspringe Speicherung.")
+            continue
+        train_df, val_df, test_df = train_val_test_split(merged_df, shuffle_train=False)
+        save_datasets(train_df, val_df, test_df, postfix=f"_phase{idx}")
