@@ -113,7 +113,6 @@ def train_val_test_split(df, train_size=0.7, val_size=0.15, test_size=0.15, shuf
     return train_df, val_df, test_df
 
 
-    return train_df, val_df, test_df
 def save_datasets(train_df, val_df, test_df, postfix=""):
     train_df.to_csv(f"data/processed/train{postfix}.csv", index=False)
     val_df.to_csv(f"data/processed/val{postfix}.csv", index=False)
