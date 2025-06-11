@@ -57,7 +57,7 @@ def main():
             # Momentum: difference over window
             df[momentum_col] = df[col] - df[col].shift(window)
             # ROC: percent change over window
-            df[roc_col] = df[col].pct_change(periods=window) * 100
+            df[roc_col] = df[col].pct_change(periods=window, fill_method=None) * 100
 
     # Save updated data
     df.to_csv(args.output_path, index=False)

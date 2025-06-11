@@ -21,7 +21,7 @@ def parse_args():
     parser.add_argument(
         "--assets", "-a",
         type=str,
-        default="sp500,bitcoin,nasdaq",
+        default="sp500,bitcoin,nasdaq,tesla",
         help="Comma-separated list of asset prefixes to process (e.g. sp500,bitcoin,nasdaq)"
     )
     parser.add_argument(
