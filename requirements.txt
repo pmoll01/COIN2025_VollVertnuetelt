@@ -27,3 +27,4 @@ transformers
 plotly
 nrclex
 xgboost
+yfinance
