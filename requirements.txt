@@ -28,3 +28,4 @@ plotly
 nrclex
 xgboost
 yfinance
+ray[tune]
