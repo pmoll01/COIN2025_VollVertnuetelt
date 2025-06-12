@@ -3,6 +3,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from data.finance_data.run_all_feature_processing import run_financial_processing_scripts
 
 def merge_dataset(features_path, targets_path, target_column="btc_change"):
     """
@@ -27,6 +28,25 @@ def merge_dataset(features_path, targets_path, target_column="btc_change"):
     return merged_df
 
 def preprocess_dataset(df, target_column):
+
+    target_column_cut = target_column.split("_")[0]
+    suffixes = [
+        "close_sma_5", "close_sma_10", "close_sma_20", "close_sma_50",
+        "close_sma_100", "close_ema_12", "close_ema_26", "close_macd_line",
+        "close_macd_signal", "close_macd_hist", "close_rsi_14",
+        "close_bb_mean_20", "close_bb_upper_20", "close_bb_lower_20",
+        "atr_14", "pdi_14", "mdi_14", "dx_14", "adx_14",
+        "stoch_k_14", "stoch_d_3", "obv", "close_momentum_10",
+        "close_roc_10", "close_momentum_20", "close_roc_20", "cci_20",
+        "mfi_14",
+    ]
+
+    dynamic_columns = [f"{target_column_cut}_{suffix}" for suffix in suffixes]
+
+    target_next = f"target_{target_column_cut}_close_next"
+
+    dynamic_columns.append(target_next)
+
     count_features = [
         "tweet_count", "nlp_tweet_count", "tesla", "stock", "market", "price", "profit", "loss",
         "revenue", "inflation", "interest", "bitcoin", "dogecoin", "crypto", "ethereum",
@@ -35,16 +55,8 @@ def preprocess_dataset(df, target_column):
         "sp500_volume", "bitcoin_volume", "nasdaq_volume", "tesla_volume", "sp500_volatility",
         "bitcoin_volatility", "nasdaq_volatility", "tesla_volatility", "sp500_high", "sp500_low",
         "bitcoin_high", "bitcoin_low", "nasdaq_high", "nasdaq_low", "tesla_high", "tesla_low",
-        "btc_change", "sp500_change", "nasdaq_change", "tesla_change",
-        "target_tesla_close_next",
-        "tesla_close_sma_5", "tesla_close_sma_10", "tesla_close_sma_20", "tesla_close_sma_50",
-        "tesla_close_sma_100", "tesla_close_ema_12", "tesla_close_ema_26", "tesla_close_macd_line",
-        "tesla_close_macd_signal", "tesla_close_macd_hist", "tesla_close_rsi_14",
-        "tesla_close_bb_mean_20", "tesla_close_bb_upper_20", "tesla_close_bb_lower_20",
-        "tesla_atr_14", "tesla_pdi_14", "tesla_mdi_14", "tesla_dx_14", "tesla_adx_14",
-        "tesla_stoch_k_14", "tesla_stoch_d_3", "tesla_obv", "tesla_close_momentum_10",
-        "tesla_close_roc_10", "tesla_close_momentum_20", "tesla_close_roc_20", "tesla_cci_20",
-        "tesla_mfi_14", "sp500_volatility_std_10", "sp500_avg_volume_20", "sp500_volume_spike_20",
+        "bitcoin_change", "sp500_change", "nasdaq_change", "tesla_change",
+        "sp500_volatility_std_10", "sp500_avg_volume_20", "sp500_volume_spike_20",
         "bitcoin_volatility_std_10", "bitcoin_avg_volume_20", "bitcoin_volume_spike_20",
         "nasdaq_volatility_std_10", "nasdaq_avg_volume_20", "nasdaq_volume_spike_20",
         "tesla_volatility_std_10", "tesla_avg_volume_20", "tesla_volume_spike_20",
@@ -53,6 +65,7 @@ def preprocess_dataset(df, target_column):
         "bitcoin_to_nasdaq_ratio", "bitcoin_nasdaq_corr_20", "bitcoin_to_tesla_ratio",
         "bitcoin_tesla_corr_20", "nasdaq_to_tesla_ratio", "nasdaq_tesla_corr_20"
     ]
+    count_features = count_features + dynamic_columns
     # remove target_column from count_features
     count_features.remove(target_column)
 
@@ -169,20 +182,26 @@ def split_by_date_cutoffs(df):
 if __name__ == "__main__":
     pd.set_option('display.max_columns', None)
 
-    target_column = "tesla_change"
+    target_column = "nasdaq_change"
     include_twitter = False
 
     print("Target Column: ", target_column)
     print("Include Twitter Features: ", include_twitter)
+
+    target_column_cut = target_column.split("_")[0]
+
+    run_financial_processing_scripts(target_column_cut)
 
     merged_df = merge_dataset(
         "data/twitter_data/processed/weighted_final_daily_df.csv",
         "data/finance_data/processing_financeData_target_variables.csv",
         target_column=target_column
     )
+    print("Merged Dataset")
 
     merged_df = preprocess_dataset(merged_df, target_column=target_column)
     merged_df.to_csv("data/processed/full_dataset.csv", index=False)
+    print("Preprocessed Dataset")
 
     if not include_twitter:
         merged_df = drop_twitter_features(merged_df)
@@ -199,3 +218,4 @@ if __name__ == "__main__":
             continue
         train_df, val_df, test_df = train_val_test_split(df, shuffle_train=False)
         save_datasets(train_df, val_df, test_df, postfix=f"_phase{idx}")
+    print("Splitted datasets")
