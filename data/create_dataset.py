@@ -162,7 +162,7 @@ def train_val_test_split(df, train_size=0.7, val_size=0.15, test_size=0.15, shuf
     else:
         train_df = df[:train_end].reset_index(drop=True)
 
-    train_df = train_df.iloc[7:].reset_index(drop=True)
+    #train_df = train_df.iloc[7:].reset_index(drop=True)
     val_df = df[train_end:val_end].reset_index(drop=True)
     test_df = df[val_end:].reset_index(drop=True)
 
