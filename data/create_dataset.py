@@ -36,8 +36,8 @@ def preprocess_dataset(df, target_column):
         "close_macd_signal", "close_macd_hist", "close_rsi_14",
         "close_bb_mean_20", "close_bb_upper_20", "close_bb_lower_20",
         "atr_14", "pdi_14", "mdi_14", "dx_14", "adx_14",
-        "stoch_k_14", "stoch_d_3", "obv", "close_momentum_10",
-        "close_roc_10", "close_momentum_20", "close_roc_20", "cci_20",
+        "stoch_k_14", "stoch_d_3", "obv", "close_momentum_7",
+        "close_roc_7", "close_momentum_21", "close_roc_21",
         "mfi_14",
     ]
 
