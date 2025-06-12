@@ -111,7 +111,7 @@ def preprocess_dataset(df, target_column):
     # restore date column
     df_transformed["date"] = pd.to_datetime(df["date"])
 
-    # TODO: Set target column
+
     df_transformed[target_column] = df[target_column]
 
     #print("final_daily_df vorbereitet, Shape:", df_transformed.shape)
