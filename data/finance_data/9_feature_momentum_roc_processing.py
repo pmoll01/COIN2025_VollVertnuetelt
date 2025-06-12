@@ -27,7 +27,7 @@ def parse_args():
     parser.add_argument(
         "--windows", "-w",
         type=str,
-        default="10,20",
+        default="7,21",
         help="Comma-separated list of window sizes (in days) for momentum and ROC"
     )
     return parser.parse_args()

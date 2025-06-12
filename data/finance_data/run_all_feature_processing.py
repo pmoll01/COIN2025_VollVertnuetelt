@@ -1,7 +1,7 @@
 import subprocess
 
 # Zielwert zentral festgelegt
-target_value = "tesla"
+target_value = "sp500"
 
 # Mapping: Skript → CLI-Argumentliste mit Platzhalter
 scripts_with_args = {
@@ -15,7 +15,7 @@ scripts_with_args = {
     "data/finance_data/7_feature_stochastic_oscillator_processing.py": ["--assets", "{target}"],
     "data/finance_data/8_feature_obv_processing.py": ["--assets", "{target}"],
     "data/finance_data/9_feature_momentum_roc_processing.py": ["--columns", "{target}_close"],
-    "data/finance_data/10_feature_cci_processing.py": ["--assets", "{target}"],
+#    "data/finance_data/10_feature_cci_processing.py": ["--assets", "{target}"], #gelöscht
     "data/finance_data/11_feature_mfi_processing.py": ["--assets", "{target}"],
     "data/finance_data/12_feature_volatility_volume_processing.py": ["--assets", "sp500,bitcoin,nasdaq,tesla"],
     "data/finance_data/13_feature_cross_asset_indicators_processing.py": ["--assets", "sp500,bitcoin,nasdaq,tesla"],
