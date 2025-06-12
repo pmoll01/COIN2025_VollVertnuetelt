@@ -17,6 +17,7 @@ dependencies:
   - graphviz
   - python-graphviz
   - py-xgboost
+  - ruptures
   - pip:
     - sidetable
     - torch
@@ -32,6 +33,5 @@ dependencies:
     - transformers
     - plotly
     - nrclex
-    - nltk
     - spacy
     - yfinance
