@@ -174,16 +174,16 @@ def save_datasets(train_df, val_df, test_df, postfix=""):
     test_df.to_csv(f"data/processed/test{postfix}.csv", index=False)
 
 def split_by_date_cutoffs(df):
-    df1 = df[df["date"] <= "2022-03-31"].reset_index(drop=True)
-    df2 = df[(df["date"] >= "2022-04-01") & (df["date"] <= "2024-01-31")].reset_index(drop=True)
-    df3 = df[df["date"] >= "2024-02-01"].reset_index(drop=True)
+    df1 = df[df["date"] <= "2018-03-06"].reset_index(drop=True)
+    df2 = df[(df["date"] >= "2018-03-07") & (df["date"] <= "2024-07-12")].reset_index(drop=True)
+    df3 = df[df["date"] >= "2024-07-13"].reset_index(drop=True)
     return df1, df2, df3
 
 if __name__ == "__main__":
     pd.set_option('display.max_columns', None)
 
-    target_column = "nasdaq_change"
-    include_twitter = False
+    target_column = "sp500_change"
+    include_twitter = True
 
     print("Target Column: ", target_column)
     print("Include Twitter Features: ", include_twitter)
