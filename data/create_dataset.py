@@ -26,7 +26,7 @@ def merge_dataset(features_path, targets_path, target_column="btc_change"):
 
     return merged_df
 
-def preprocess_dataset(df):
+def preprocess_dataset(df, target_column):
     count_features = [
         "tweet_count", "nlp_tweet_count", "tesla", "stock", "market", "price", "profit", "loss",
         "revenue", "inflation", "interest", "bitcoin", "dogecoin", "crypto", "ethereum",
@@ -35,7 +35,7 @@ def preprocess_dataset(df):
         "sp500_volume", "bitcoin_volume", "nasdaq_volume", "tesla_volume", "sp500_volatility",
         "bitcoin_volatility", "nasdaq_volatility", "tesla_volatility", "sp500_high", "sp500_low",
         "bitcoin_high", "bitcoin_low", "nasdaq_high", "nasdaq_low", "tesla_high", "tesla_low",
-        "btc_change", "sp500_change", "nasdaq_change", #"tesla_change",
+        "btc_change", "sp500_change", "nasdaq_change", "tesla_change",
         "target_tesla_close_next",
         "tesla_close_sma_5", "tesla_close_sma_10", "tesla_close_sma_20", "tesla_close_sma_50",
         "tesla_close_sma_100", "tesla_close_ema_12", "tesla_close_ema_26", "tesla_close_macd_line",
@@ -53,6 +53,9 @@ def preprocess_dataset(df):
         "bitcoin_to_nasdaq_ratio", "bitcoin_nasdaq_corr_20", "bitcoin_to_tesla_ratio",
         "bitcoin_tesla_corr_20", "nasdaq_to_tesla_ratio", "nasdaq_tesla_corr_20"
     ]
+    # remove target_column from count_features
+    count_features.remove(target_column)
+
 
     score_features = [
         "neg", "neu", "pos", "polarized", "anger", "disgust", "fear", "joy", "neutral",
@@ -109,10 +112,30 @@ def preprocess_dataset(df):
     df_transformed["date"] = pd.to_datetime(df["date"])
 
     # TODO: Set target column
-    df_transformed["tesla_change"] = df["tesla_change"]
+    df_transformed[target_column] = df[target_column]
 
-    print("final_daily_df vorbereitet, Shape:", df_transformed.shape)
+    #print("final_daily_df vorbereitet, Shape:", df_transformed.shape)
     return df_transformed
+
+
+def drop_twitter_features(df):
+    features_to_drop = [
+        "neg", "neu", "pos", "polarized", "anger", "disgust", "fear", "joy", "neutral",
+        "sadness", "surprise", "Extroversion", "Neuroticism", "Agreeableness",
+        "Conscientiousness", "Openness", "arts_culture", "business_entrepreneurs",
+        "celebrity_pop_culture", "diaries_daily_life", "family", "fashion_style",
+        "film_tv_video", "fitness_&_health", "food_&_dining", "gaming",
+        "learning_educational", "music", "news_social_concern", "other_hobbies",
+        "relationships", "science_technology", "sports", "travel_adventure", "youth_student_life",
+        "no_tweets",
+        "tweet_count", "nlp_tweet_count", "tesla", "stock", "market", "price", "profit", "loss",
+        "revenue", "inflation", "interest", "bitcoin", "dogecoin", "crypto", "ethereum",
+        "spacex", "model", "cybertruck", "starship", "buy", "sell", "likeCount", "quoteCount",
+        "retweetCount", "replyCount"
+    ]
+
+    return df.drop(columns=[col for col in features_to_drop if col in df.columns])
+
 
 def train_val_test_split(df, train_size=0.7, val_size=0.15, test_size=0.15, shuffle_train=False):
     if train_size + val_size + test_size != 1.0:
@@ -146,14 +169,24 @@ def split_by_date_cutoffs(df):
 if __name__ == "__main__":
     pd.set_option('display.max_columns', None)
 
+    target_column = "tesla_change"
+    include_twitter = False
+
+    print("Target Column: ", target_column)
+    print("Include Twitter Features: ", include_twitter)
+
     merged_df = merge_dataset(
         "data/twitter_data/processed/weighted_final_daily_df.csv",
         "data/finance_data/processing_financeData_target_variables.csv",
-        target_column="target_tesla_close_next"
+        target_column=target_column
     )
 
-    merged_df = preprocess_dataset(merged_df)
+    merged_df = preprocess_dataset(merged_df, target_column=target_column)
     merged_df.to_csv("data/processed/full_dataset.csv", index=False)
+
+    if not include_twitter:
+        merged_df = drop_twitter_features(merged_df)
+        merged_df.to_csv("data/processed/full_dataset.csv", index=False)
 
     df1, df2, df3 = split_by_date_cutoffs(merged_df)
 
