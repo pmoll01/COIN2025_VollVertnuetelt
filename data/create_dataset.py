@@ -80,7 +80,7 @@ def preprocess_dataset(df, target_column):
         "relationships", "science_technology", "sports", "travel_adventure", "youth_student_life"
     ]
 
-    binary_features = ["no_tweets"]
+    binary_features = ["no_tweets", "is_trading_day"]
 
     count_pipeline = Pipeline([
         ("imputer_zero", SimpleImputer(strategy="constant", fill_value=0, keep_empty_features=True)),
