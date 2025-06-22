@@ -65,14 +65,14 @@ def main():
 
     assets = [a.strip() for a in args.assets.split(',')]
     for asset in assets:
-        cols = [f"{asset}_high", f"{asset}_low", f"{asset}_close", f"{asset}_volume"]
+        cols = [f"{asset}_high", f"{asset}_low", f"{asset}_stockprice", f"{asset}_volume"]
         if not all(col in df.columns for col in cols):
             raise ValueError(f"Missing required columns for asset '{asset}': {cols}")
 
         mfi_series = compute_mfi(
             df[f"{asset}_high"],
             df[f"{asset}_low"],
-            df[f"{asset}_close"],
+            df[f"{asset}_stockprice"],
             df[f"{asset}_volume"],
             args.period
         )

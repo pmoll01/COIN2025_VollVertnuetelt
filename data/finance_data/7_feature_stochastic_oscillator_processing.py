@@ -42,11 +42,11 @@ def parse_args():
 def compute_stochastic(df: pd.DataFrame, asset: str, k_period: int, d_period: int):
     high = df[f"{asset}_high"]
     low = df[f"{asset}_low"]
-    close = df[f"{asset}_close"]
+    stockprice = df[f"{asset}_stockprice"]
 
     lowest_low = low.rolling(window=k_period, min_periods=1).min()
     highest_high = high.rolling(window=k_period, min_periods=1).max()
-    percent_k = 100 * (close - lowest_low) / (highest_high - lowest_low)
+    percent_k = 100 * (stockprice - lowest_low) / (highest_high - lowest_low)
     percent_d = percent_k.rolling(window=d_period, min_periods=1).mean()
 
     return percent_k, percent_d
@@ -65,7 +65,7 @@ def main():
 
     assets = [a.strip() for a in args.assets.split(',')]
     for asset in assets:
-        for col in (f"{asset}_high", f"{asset}_low", f"{asset}_close"):
+        for col in (f"{asset}_high", f"{asset}_low", f"{asset}_stockprice"):
             if col not in df.columns:
                 raise ValueError(f"Missing required column '{col}' for asset '{asset}'")
 

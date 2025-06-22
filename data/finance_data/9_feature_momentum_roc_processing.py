@@ -21,7 +21,7 @@ def parse_args():
     parser.add_argument(
         "--columns", "-c",
         type=str,
-        default="sp500_close",
+        default="sp500_stockprice",
         help="Comma-separated list of columns to compute features for"
     )
     parser.add_argument(

@@ -61,11 +61,11 @@ def main():
     for asset in assets:
         high_col = f"{asset}_high"
         low_col = f"{asset}_low"
-        close_col = f"{asset}_close"
-        if not all(col in df.columns for col in [high_col, low_col, close_col]):
-            raise ValueError(f"Missing columns for asset '{asset}': required {high_col}, {low_col}, {close_col}")
+        stockprice_col = f"{asset}_stockprice"
+        if not all(col in df.columns for col in [high_col, low_col, stockprice_col]):
+            raise ValueError(f"Missing columns for asset '{asset}': required {high_col}, {low_col}, {stockprice_col}")
 
-        atr_series = compute_atr(df[high_col], df[low_col], df[close_col], args.period)
+        atr_series = compute_atr(df[high_col], df[low_col], df[stockprice_col], args.period)
         df[f"{asset}_atr_{args.period}"] = atr_series
 
     # Save updated data

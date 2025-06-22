@@ -51,16 +51,16 @@ def main():
         for j in range(i+1, len(assets)):
             a1 = assets[i]
             a2 = assets[j]
-            close1 = f"{a1}_close"
-            close2 = f"{a2}_close"
-            if close1 not in df.columns or close2 not in df.columns:
-                raise ValueError(f"Missing required columns: {close1}, {close2}")
+            stockprice1 = f"{a1}_stockprice"
+            stockprice2 = f"{a2}_stockprice"
+            if stockprice1 not in df.columns or stockprice2 not in df.columns:
+                raise ValueError(f"Missing required columns: {stockprice1}, {stockprice2}")
             ratio_col = f"{a1}_to_{a2}_ratio"
-            df[ratio_col] = df[close1] / df[close2]
+            df[ratio_col] = df[stockprice1] / df[stockprice2]
 
             # Rolling correlation
             corr_col = f"{a1}_{a2}_corr_{args.corr_window}"
-            df[corr_col] = df[close1].rolling(window=args.corr_window, min_periods=1).corr(df[close2])
+            df[corr_col] = df[stockprice1].rolling(window=args.corr_window, min_periods=1).corr(df[stockprice2])
 
     # Save updated data
     df.to_csv(args.output_path, index=False)

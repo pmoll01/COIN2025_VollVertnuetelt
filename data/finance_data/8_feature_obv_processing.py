@@ -47,12 +47,12 @@ def main():
 
     assets = [a.strip() for a in args.assets.split(',')]
     for asset in assets:
-        close_col = f"{asset}_close"
+        stockprice_col = f"{asset}_stockprice"
         volume_col = f"{asset}_volume"
-        if close_col not in df.columns or volume_col not in df.columns:
-            raise ValueError(f"Missing required columns for asset '{asset}': {close_col}, {volume_col}")
+        if stockprice_col not in df.columns or volume_col not in df.columns:
+            raise ValueError(f"Missing required columns for asset '{asset}': {stockprice_col}, {volume_col}")
 
-        obv_series = compute_obv(df[close_col], df[volume_col])
+        obv_series = compute_obv(df[stockprice_col], df[volume_col])
         df[f"{asset}_obv"] = obv_series
 
     # Save updated data

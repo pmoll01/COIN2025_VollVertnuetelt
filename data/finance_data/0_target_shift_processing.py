@@ -21,7 +21,7 @@ def parse_args():
     parser.add_argument(
         "--target-column", "-t",
         type=str,
-        default="sp500_close",
+        default="sp500_stockprice",
         help="Name of the column to shift as target for next-day prediction"
     )
     return parser.parse_args()

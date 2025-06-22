@@ -35,13 +35,13 @@ def parse_args():
 def compute_adx(df: pd.DataFrame, asset: str, period: int) -> pd.DataFrame:
     high = df[f"{asset}_high"]
     low = df[f"{asset}_low"]
-    close = df[f"{asset}_close"]
+    stockprice = df[f"{asset}_stockprice"]
 
     # True Range
-    prev_close = close.shift(1)
+    prev_stockprice = stockprice.shift(1)
     tr1 = high - low
-    tr2 = (high - prev_close).abs()
-    tr3 = (low - prev_close).abs()
+    tr2 = (high - prev_stockprice).abs()
+    tr3 = (low - prev_stockprice).abs()
     tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
 
     # Directional Movement
@@ -79,7 +79,7 @@ def main():
 
     assets = [a.strip() for a in args.assets.split(',')]
     for asset in assets:
-        for col in (f"{asset}_high", f"{asset}_low", f"{asset}_close"):
+        for col in (f"{asset}_high", f"{asset}_low", f"{asset}_stockprice"):
             if col not in df.columns:
                 raise ValueError(f"Missing required column '{col}' for asset '{asset}'")
 
