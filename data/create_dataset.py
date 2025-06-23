@@ -3,7 +3,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
-from data.finance_data.run_all_feature_processing import run_financial_processing_scripts
+from Data.finance_data.run_all_feature_processing import run_financial_processing_scripts
 
 def merge_dataset(features_path, targets_path, target_column="btc_change"):
     """

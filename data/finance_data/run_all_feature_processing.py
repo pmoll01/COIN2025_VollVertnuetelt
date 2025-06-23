@@ -26,6 +26,8 @@ def run_financial_processing_scripts(target_column: str):
         "data/finance_data/11_feature_mfi_processing.py": ["--assets", asset_name],
         "data/finance_data/12_feature_volatility_volume_processing.py": ["--assets", "sp500,bitcoin,nasdaq,tesla"],
         "data/finance_data/13_feature_cross_asset_indicators_processing.py": ["--assets", "sp500,bitcoin,nasdaq,tesla"]
+    #TODO malte
+        #"data/finance_data/14_drop_high_low_features.py": ["--assets", "sp500,bitcoin,nasdaq,tesla"]
     }
 
     for script, arg_list in scripts_with_args.items():
