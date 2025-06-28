@@ -5,6 +5,61 @@ from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from Data.finance_data.run_all_feature_processing import run_financial_processing_scripts
 
+# Test cases:
+# assets = ["sp500", "tesla", "bitcoin", "nasdaq"]
+# definitions = ["_change_stockprice", "_change_volume", "_change_volatility"]
+# types = ["regression", "classification"]
+# data_sources = ["finance_twitterdata", "financadata"]
+
+# Configuration for scenarios
+defaults = {
+    'assets': ["sp500", "tesla", "bitcoin", "nasdaq"],
+    'definitions': ["_change_stockprice", "_change_volume", "_change_volatility"],
+    'types': ["regression", "classification"],
+    'data_sources': ["finance_twitterdata", "financadata"]
+}
+
+# Path templates
+data_paths = {
+    'finance_twitterdata': {
+        'features': "data/twitter_data/processed/weighted_final_daily_df.csv",
+        'targets': "data/finance_data/processing_financeData_target_variables.csv"
+    },
+    'financadata': {
+        'features': "data/finance_data/processed/finance_features.csv",
+        'targets': "data/finance_data/processing_financeData_target_variables.csv"
+    }
+}
+
+# Features
+FINANCE_FEATURES = [
+    "close_sma_5", "close_sma_10", "close_sma_20", "close_sma_50",
+    "close_sma_100", "close_ema_12", "close_ema_26", "close_macd_line",
+    "close_macd_signal", "close_macd_hist", "close_rsi_14",
+    "close_bb_mean_20", "close_bb_upper_20", "close_bb_lower_20",
+    "atr_14", "pdi_14", "mdi_14", "dx_14", "adx_14",
+    "stoch_k_14", "stoch_d_3", "obv", "close_momentum_7",
+    "close_roc_7", "close_momentum_21", "close_roc_21",
+    "mfi_14"
+]
+
+TWITTER_FEATURES = [
+    "neg", "neu", "pos", "polarized", "anger", "disgust", "fear", "joy", "neutral",
+    "sadness", "surprise", "Extroversion", "Neuroticism", "Agreeableness",
+    "Conscientiousness", "Openness", "arts_culture", "business_entrepreneurs",
+    "celebrity_pop_culture", "diaries_daily_life", "family", "fashion_style",
+    "film_tv_video", "fitness_&_health", "food_&_dining", "gaming",
+    "learning_educational", "music", "news_social_concern", "other_hobbies",
+    "relationships", "science_technology", "sports", "travel_adventure",
+    "youth_student_life"
+]
+
+TARGET_COLUMNS = [
+    "btc_change", "sp500_change", "nasdaq_change", "tesla_change",
+    "bitcoin_volume", "sp500_volume", "nasdaq_volume", "tesla_volume",
+    "bitcoin_volatility", "sp500_volatility", "nasdaq_volatility", "tesla_volatility",
+]
+
 def merge_dataset(features_path, targets_path, target_column="btc_change"):
     """
     Merged features and targets based on date.
