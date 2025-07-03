@@ -11,13 +11,13 @@ CONFIG = {
     "assets": ["sp500", "tesla", "bitcoin", "nasdaq"],
     "definitions": ["_change_stockprice", "_change_volume", "_change_volatility"],
     # "types": ["regression", "classification"], Das muss durch das model unterschieden werden, die daten sind gleich
-    "data_sources": ["finance_twitterdata", "financadata"],
+    "data_sources": ["finance_twitterdata", "financedata"],
     "paths": {
         "finance_twitterdata": {
             "features": "data/twitter_data/processed/weighted_final_daily_df.csv",
             "targets": "data/finance_data/processing_financeData_target_variables.csv"
         },
-        "financadata": {
+        "financedata": {
             "features": "data/finance_data/processed/finance_features.csv", #kp wo die herkommen
             "targets": "data/finance_data/processing_financeData_target_variables.csv"
         }
@@ -26,19 +26,19 @@ CONFIG = {
         # Phase1: <= 2022-03-31; Phase2: 2022-04-01 to 2024-01-31; Phase3: >= 2024-02-01
         "cutoffs": ["2022-03-31", "2024-01-31"]
     },
-    "output_dir": "data/processed"
+    "output_dir": "Data/combined_pipeline_outputs"
 }
 
 # --- Feature Lists ---
 # Technical indicators suffixes (dynamic features)
 DYNAMIC_SUFFIXES = [
-    "close_sma_5", "close_sma_10", "close_sma_20", "close_sma_50",
-    "close_sma_100", "close_ema_12", "close_ema_26", "close_macd_line",
-    "close_macd_signal", "close_macd_hist", "close_rsi_14",
-    "close_bb_mean_20", "close_bb_upper_20", "close_bb_lower_20",
+    "stockprice_sma_5", "stockprice_sma_10", "stockprice_sma_20", "stockprice_sma_50",
+    "stockprice_sma_100", "stockprice_ema_12", "stockprice_ema_26", "stockprice_macd_line",
+    "stockprice_macd_signal", "stockprice_macd_hist", "stockprice_rsi_14",
+    "stockprice_bb_mean_20", "stockprice_bb_upper_20", "stockprice_bb_lower_20",
     "atr_14", "pdi_14", "mdi_14", "dx_14", "adx_14",
-    "stoch_k_14", "stoch_d_3", "obv", "close_momentum_7",
-    "close_roc_7", "close_momentum_21", "close_roc_21",
+    "stoch_k_14", "stoch_d_3", "obv", "stockprice_momentum_7",
+    "stockprice_roc_7", "stockprice_momentum_21", "stockprice_roc_21",
     "mfi_14"
 ]
 
@@ -47,10 +47,9 @@ OTHER_COUNT_FEATURES = [
     "tweet_count", "nlp_tweet_count", "tesla", "stock", "market", "price", "profit", "loss",
     "revenue", "inflation", "interest", "bitcoin", "dogecoin", "crypto", "ethereum",
     "spacex", "model", "cybertruck", "starship", "buy", "sell", "likeCount", "quoteCount",
-    "retweetCount", "replyCount", "sp500_close", "bitcoin_close", "nasdaq_close", "tesla_close",
+    "retweetCount", "replyCount", "sp500_stockprice", "bitcoin_stockprice", "nasdaq_stockprice", "tesla_stockprice",
     "sp500_volume", "bitcoin_volume", "nasdaq_volume", "tesla_volume", "sp500_volatility",
-    "bitcoin_volatility", "nasdaq_volatility", "tesla_volatility", "sp500_high", "sp500_low",
-    "bitcoin_high", "bitcoin_low", "nasdaq_high", "nasdaq_low", "tesla_high", "tesla_low",
+    "bitcoin_volatility", "nasdaq_volatility", "tesla_volatility",
     # rolling stats
     "sp500_volatility_std_10", "sp500_avg_volume_20", "sp500_volume_spike_20",
     "bitcoin_volatility_std_10", "bitcoin_avg_volume_20", "bitcoin_volume_spike_20",
@@ -172,7 +171,7 @@ def run_pipeline():
         for definition in CONFIG["definitions"]:
             target_col = f"{asset}{definition}"
             # run feature engineering if needed
-            run_financial_processing_scripts(asset)
+            run_financial_processing_scripts(target_col)
 
             for source in CONFIG["data_sources"]:
                 include_twitter = (source == "finance_twitterdata")
