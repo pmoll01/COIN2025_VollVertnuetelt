@@ -169,14 +169,14 @@ def build_preprocessor(target_prefix: str, available_columns: list[str]) -> Colu
 
 # Main pipeline
 def run_pipeline():
-    CONFIG["output_dir"].mkdir(parents=True, exist_ok=True)
+    run_financial_processing_scripts(CONFIG["assets"], CONFIG["definitions"])
+    print("✅ Alle modular CSVs erzeugt ✅")
+    # 2) Nun die einzelnen Trainings-Datasets zusammenbauen
     for asset in CONFIG["assets"]:
         for definition in CONFIG["definitions"]:
-            print(f"\n🔍 Now processing asset: {asset} with definition: {definition}") #logging
+            print(f"\n🔍 Now processing asset: {asset} with definition: {definition}")
             target_col = f"{asset}{definition}"
-            # 1) Generate modular CSVs
-            run_financial_processing_scripts(target_col)
-            print(f"\n✅ Generated features for: {target_col}") #logging
+
             # 2) Load features
             feat_df = load_modular_features(asset)
             # merge basic features and is_trading_day
