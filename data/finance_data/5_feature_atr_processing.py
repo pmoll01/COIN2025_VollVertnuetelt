@@ -1,76 +1,56 @@
 import argparse
 import pandas as pd
-import numpy as np
 import os
 
+
 def parse_args():
-    parser = argparse.ArgumentParser(
-        description="Compute ATR (Average True Range) for specified asset prefixes"
-    )
-    parser.add_argument(
-        "--input-path", "-i",
-        type=str,
-        default="data/finance_data/processing_financeData_target_variables.csv",
-        help="Path to the input CSV file"
-    )
-    parser.add_argument(
-        "--output-path", "-o",
-        type=str,
-        default="data/finance_data/processing_financeData_target_variables.csv",
-        help="Path to save the updated CSV file with ATR features"
-    )
-    parser.add_argument(
-        "--assets", "-a",
-        type=str,
-        default="sp500",
-        help="Comma-separated list of asset prefixes (e.g. sp500, bitcoin) to compute ATR for"
-    )
-    parser.add_argument(
-        "--period", "-p",
-        type=int,
-        default=14,
-        help="Period length for ATR calculation"
-    )
+    parser = argparse.ArgumentParser(description="Compute ATR for specified assets")
+    parser.add_argument("--input-path", "-i", type=str, default="data/finance_data/financeData_target_variables.csv")
+    parser.add_argument("--assets", "-a", type=str, required=True)
+    parser.add_argument("--period", "-p", type=int, default=14)
+    parser.add_argument("--output-dir", "-O", type=str, default="Data/finance_data/granular_csv_modules")
     return parser.parse_args()
 
 
 def compute_atr(high: pd.Series, low: pd.Series, close: pd.Series, period: int) -> pd.Series:
     prev_close = close.shift(1)
-    tr1 = high - low
-    tr2 = (high - prev_close).abs()
-    tr3 = (low - prev_close).abs()
-    tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
-    # Wilder smoothing: EMA with alpha=1/period
-    atr = tr.ewm(alpha=1/period, adjust=False).mean()
-    return atr
+    tr = pd.concat([
+        high - low,
+        (high - prev_close).abs(),
+        (low - prev_close).abs()
+    ], axis=1).max(axis=1)
+    return tr.ewm(alpha=1/period, adjust=False).mean()
 
 
 def main():
     args = parse_args()
+    os.makedirs(args.output_dir, exist_ok=True)
 
-    # Ensure output directory exists
-    out_dir = os.path.dirname(args.output_path)
-    os.makedirs(out_dir, exist_ok=True)
+    df = pd.read_csv(args.input_path, parse_dates=["Date"]).sort_values("Date").reset_index(drop=True)
 
-    # Load and sort data
-    df = pd.read_csv(args.input_path, parse_dates=["Date"])
-    df = df.sort_values("Date").reset_index(drop=True)
-
-    assets = [a.strip() for a in args.assets.split(',')]
-
-    for asset in assets:
+    for asset in [a.strip() for a in args.assets.split(",")]:
         high_col = f"{asset}_high"
         low_col = f"{asset}_low"
-        stockprice_col = f"{asset}_stockprice"
-        if not all(col in df.columns for col in [high_col, low_col, stockprice_col]):
-            raise ValueError(f"Missing columns for asset '{asset}': required {high_col}, {low_col}, {stockprice_col}")
+        close_col = f"{asset}_stockprice"
 
-        atr_series = compute_atr(df[high_col], df[low_col], df[stockprice_col], args.period)
-        df[f"{asset}_atr_{args.period}"] = atr_series
+        if not all(col in df.columns for col in [high_col, low_col, close_col]):
+            raise ValueError(f"Missing one of: {high_col}, {low_col}, {close_col}")
 
-    # Save updated data
-    df.to_csv(args.output_path, index=False)
-    print(f"Saved ATR({args.period}) for assets {assets} to {args.output_path}")
+        atr_series = compute_atr(df[high_col], df[low_col], df[close_col], args.period)
+
+        result = pd.DataFrame()
+        result["date"] = df["Date"]
+        result[f"{asset}_atr_{args.period}"] = atr_series
+
+        output_path = os.path.join(args.output_dir, f"03_indicators_{asset}.csv")
+
+        if os.path.exists(output_path):
+            existing = pd.read_csv(output_path, parse_dates=["date"])
+            result = pd.merge(existing, result, on="date", how="outer").sort_values("date")
+
+        result.to_csv(output_path, index=False)
+        print(f"✅ Appended ATR to {output_path}")
+
 
 if __name__ == "__main__":
     main()

@@ -1,6 +1,8 @@
+#1_feature_moving_averages_processing.py
 import argparse
 import pandas as pd
 import os
+
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -10,18 +12,12 @@ def parse_args():
         "--input-path", "-i",
         type=str,
         default="data/finance_data/processing_financeData_target_variables.csv",
-        help="Path to the input CSV file (processed with target shift)"
-    )
-    parser.add_argument(
-        "--output-path", "-o",
-        type=str,
-        default="data/finance_data/processing_financeData_target_variables.csv",
-        help="Path to save the updated CSV file with moving averages"
+        help="Path to the input CSV file"
     )
     parser.add_argument(
         "--columns", "-c",
         type=str,
-        default="sp500_close",
+        required=True,
         help="Comma-separated list of columns to compute moving averages for"
     )
     parser.add_argument(
@@ -36,39 +32,46 @@ def parse_args():
         default="12,26",
         help="Comma-separated list of span sizes for Exponential Moving Averages"
     )
+    parser.add_argument(
+        "--output-dir", "-O",
+        type=str,
+        default="Data/finance_data/granular_csv_modules",
+        help="Directory to save the indicators CSV"
+    )
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
 
-    # Ensure output directory exists
-    out_dir = os.path.dirname(args.output_path)
-    os.makedirs(out_dir, exist_ok=True)
+    # Parse arguments
+    cols = [c.strip() for c in args.columns.split(',')]
+    sma_windows = [int(w) for w in args.sma_windows.split(',')]
+    ema_windows = [int(w) for w in args.ema_windows.split(',')]
+    os.makedirs(args.output_dir, exist_ok=True)
 
     # Load data
     df = pd.read_csv(args.input_path, parse_dates=["Date"])
     df = df.sort_values("Date").reset_index(drop=True)
 
-    cols = [c.strip() for c in args.columns.split(',')]
-    sma_windows = [int(w) for w in args.sma_windows.split(',')]
-    ema_windows = [int(w) for w in args.ema_windows.split(',')]
+    # Initialize result DataFrame
+    result = pd.DataFrame()
+    result["date"] = df["Date"]
 
-    # Compute SMAs
+    # Generate features
     for col in cols:
         for w in sma_windows:
-            feature_name = f"{col}_sma_{w}"
-            df[feature_name] = df[col].rolling(window=w, min_periods=1).mean()
-
-    # Compute EMAs
-    for col in cols:
+            result[f"{col}_sma_{w}"] = df[col].rolling(window=w, min_periods=1).mean()
         for span in ema_windows:
-            feature_name = f"{col}_ema_{span}"
-            df[feature_name] = df[col].ewm(span=span, adjust=False).mean()
+            result[f"{col}_ema_{span}"] = df[col].ewm(span=span, adjust=False).mean()
 
-    # Save updated data
-    df.to_csv(args.output_path, index=False)
-    print(f"Saved moving averages for {cols} to {args.output_path}")
+    # Get asset name from column name (e.g., "sp500_stockprice" → "sp500")
+    asset_name = cols[0].split("_")[0]
+    output_path = os.path.join(args.output_dir, f"03_indicators_{asset_name}.csv")
+
+    result.to_csv(output_path, index=False)
+    print(f"✅ Saved moving averages to {output_path} (columns: {len(result.columns)-1} features)")
+
 
 if __name__ == "__main__":
     main()
