@@ -37,14 +37,15 @@ CONFIG = {
 
 # Feature lists (unchanged)
 DYNAMIC_SUFFIXES = [
-    "stockprice_sma_5", "stockprice_sma_10", "stockprice_sma_20", "stockprice_sma_50",
-    "stockprice_sma_100", "stockprice_ema_12", "stockprice_ema_26", "stockprice_macd_line",
-    "stockprice_macd_signal", "stockprice_macd_hist", "stockprice_rsi_14",
+    "stockprice_sma_5", "stockprice_sma_10", "stockprice_sma_20", "stockprice_sma_50", "stockprice_sma_100",
+    "stockprice_ema_12", "stockprice_ema_26",
+    "stockprice_macd_line", "stockprice_macd_signal", "stockprice_macd_hist",
+    "stockprice_rsi_14",
     "stockprice_bb_mean_20", "stockprice_bb_upper_20", "stockprice_bb_lower_20",
-    "atr_14", "pdi_14", "mdi_14", "dx_14", "adx_14",
-    "stoch_k_14", "stoch_d_3", "obv", "stockprice_momentum_7",
-    "stockprice_roc_7", "stockprice_momentum_21", "stockprice_roc_21",
-    "mfi_14"
+    "atr_14", "pdi_14", "mdi_14", "dx_14", "adx_14", "mfi_14"
+    "stoch_k_14", "stoch_d_3",
+    "obv",
+    "stockprice_momentum_7", "stockprice_roc_7", "stockprice_momentum_21", "stockprice_roc_21",
 ]
 OTHER_COUNT_FEATURES = [
     "tweet_count", "nlp_tweet_count", "tesla", "stock", "market", "price", "profit", "loss",
@@ -65,11 +66,16 @@ OTHER_COUNT_FEATURES = [
     "bitcoin_tesla_corr_20", "nasdaq_to_tesla_ratio", "nasdaq_tesla_corr_20"
 ]
 SCORE_FEATURES = [
-    "neg", "neu", "pos", "polarized", "anger", "disgust", "fear", "joy", "neutral",
-    "sadness", "surprise", "Extroversion", "Neuroticism", "Agreeableness",
-    "Conscientiousness", "Openness", "arts_culture", "business_entrepreneurs",
-    "celebrity_pop_culture", "diaries_daily_life", "family", "fashion_style",
-    "film_tv_video", "fitness_&_health", "food_&_dining", "gaming",
+    "neg", "neu", "pos",
+
+    "polarized",
+
+    "anger", "disgust", "fear", "joy", "neutral", "sadness", "surprise",
+
+    "Extroversion", "Neuroticism", "Agreeableness", "Conscientiousness", "Openness",
+
+    "arts_culture", "business_entrepreneurs", "celebrity_pop_culture", "diaries_daily_life",
+    "family", "fashion_style", "film_tv_video", "fitness_&_health", "food_&_dining", "gaming",
     "learning_educational", "music", "news_social_concern", "other_hobbies",
     "relationships", "science_technology", "sports", "travel_adventure", "youth_student_life"
 ]

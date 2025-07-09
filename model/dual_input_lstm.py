@@ -10,15 +10,15 @@ import matplotlib.pyplot as plt
 
 # 🔧 Hyperparameter
 SEQ_LEN = 5
-BATCH_SIZE = 64
+BATCH_SIZE = 11
 EPOCHS = 100
 LR = 0.0005
 
 # 📁 Datenpfade
 BASE = Path("Data/combined_pipeline_outputs")
-ASSET = "bitcoin"
-TARGET = "change_volatility"
-PHASE = "phase2"
+ASSET = "tesla" #options: tesla, sp500, nasdaq, bitcoin
+TARGET = "change_stockprice" #options: change_stockprice, change_volume, change_volatility
+PHASE = "full" #options: phase1, phase2, phase3, full
 FNAME = f"{ASSET}{TARGET}_{{split}}_{PHASE}.csv"
 
 DROP_COLS = [
@@ -31,36 +31,53 @@ DROP_COLS = [
 
     # 🔸 Technical Analysis (ca. ⅔ raus, sinnvoll gruppiert)
     # SMA/EMA (raus bis auf 1)
-    "counts__tesla_stockprice_sma_5",
-    "counts__tesla_stockprice_sma_10",
-    "counts__tesla_stockprice_sma_50",
-    "counts__tesla_stockprice_sma_100",
-    "counts__tesla_stockprice_ema_12",
+    "counts__sp500_stockprice_sma_5", "counts__sp500_stockprice_sma_10", "counts__sp500_stockprice_sma_50", "counts__sp500_stockprice_sma_100", "counts__sp500_stockprice_ema_12",
+    "counts__nasdaq_stockprice_sma_5", "counts__nasdaq_stockprice_sma_10", "counts__nasdaq_stockprice_sma_50", "counts__nasdaq_stockprice_sma_100", "counts__nasdaq_stockprice_ema_12",
+    "counts__tesla_stockprice_sma_5", "counts__tesla_stockprice_sma_10", "counts__tesla_stockprice_sma_50", "counts__tesla_stockprice_sma_100", "counts__tesla_stockprice_ema_12",
+    "counts__bitcoin_stockprice_sma_5", "counts__bitcoin_stockprice_sma_10", "counts__bitcoin_stockprice_sma_50", "counts__bitcoin_stockprice_sma_100", "counts__bitcoin_stockprice_ema_12",
 
     # MACD (behalte nur die Linie)
-    "counts__tesla_stockprice_macd_signal",
-    "counts__tesla_stockprice_macd_hist",
+    "counts__sp500_stockprice_macd_signal", "counts__sp500_stockprice_macd_hist",
+    "counts__nasdaq_stockprice_macd_signal", "counts__nasdaq_stockprice_macd_hist",
+    "counts__tesla_stockprice_macd_signal", "counts__tesla_stockprice_macd_hist",
+    "counts__bitcoin_stockprice_macd_signal", "counts__bitcoin_stockprice_macd_hist",
 
-    # RSI und BB behalten
     # ATR und DMI (ADX behalten)
-    "counts__tesla_atr_14",
-    "counts__tesla_pdi_14",
-    "counts__tesla_mdi_14",
-    "counts__tesla_dx_14",
+    "counts__sp500_atr_14", "counts__sp500_pdi_14", "counts__sp500_mdi_14", "counts__sp500_dx_14",
+    "counts__nasdaq_atr_14", "counts__nasdaq_pdi_14", "counts__nasdaq_mdi_14", "counts__nasdaq_dx_14",
+    "counts__tesla_atr_14", "counts__tesla_pdi_14", "counts__tesla_mdi_14", "counts__tesla_dx_14",
+    "counts__bitcoin_atr_14", "counts__bitcoin_pdi_14", "counts__bitcoin_mdi_14", "counts__bitcoin_dx_14",
 
     # Stochastic raus
-    "counts__tesla_stoch_k_14",
-    "counts__tesla_stoch_d_3",
+    "counts__sp500_stoch_k_14", "counts__sp500_stoch_d_3",
+    "counts__nasdaq_stoch_k_14", "counts__nasdaq_stoch_d_3",
+    "counts__tesla_stoch_k_14", "counts__tesla_stoch_d_3",
+    "counts__bitcoin_stoch_k_14", "counts__bitcoin_stoch_d_3",
 
     # Momentum/RoC raus (bis auf momentum_21)
-    "counts__tesla_stockprice_momentum_7",
-    "counts__tesla_stockprice_roc_7",
-    "counts__tesla_stockprice_roc_21",
+    "counts__sp500_stockprice_momentum_7", "counts__sp500_stockprice_roc_7", "counts__sp500_stockprice_roc_21",
+    "counts__nasdaq_stockprice_momentum_7", "counts__nasdaq_stockprice_roc_7", "counts__nasdaq_stockprice_roc_21",
+    "counts__tesla_stockprice_momentum_7", "counts__tesla_stockprice_roc_7", "counts__tesla_stockprice_roc_21",
+    "counts__bitcoin_stockprice_momentum_7", "counts__bitcoin_stockprice_roc_7", "counts__bitcoin_stockprice_roc_21",
 
     # OBV behalten, MFI raus
+    "counts__sp500_mfi_14",
+    "counts__nasdaq_mfi_14",
     "counts__tesla_mfi_14",
+    "counts__bitcoin_mfi_14",
 
     # 🔸 Topic scores (nur 4–5 behalten, Rest raus)
+    # "scores__neg",
+    # "scores__neu",
+    # "scores__pos",
+    # "scores__polarized",
+    # "scores__anger",
+    # "scores__disgust",
+    # "scores__fear",
+    # "scores__joy",
+    # "scores__neutral",
+    # "scores__sadness",
+    # "scores__surprise"
     "scores__arts_culture",
     "scores__celebrity_pop_culture",
     "scores__diaries_daily_life",
@@ -72,15 +89,13 @@ DROP_COLS = [
     "scores__gaming",
     "scores__learning_educational",
     "scores__music",
+#   "scores__news_social_concern",
     "scores__other_hobbies",
     "scores__sports",
     "scores__travel_adventure",
     "scores__youth_student_life",
 
-    # 🔸 Sonstiges (alles was explizit raus soll)
-    # (keine weiteren aktuell)
 ]
-
 
 # 📦 Dataset
 class DualInputDataset(Dataset):
@@ -89,20 +104,23 @@ class DualInputDataset(Dataset):
         finance_cols = [c for c in feature_cols if c.startswith("counts__tesla") or "stockprice" in c or "is_trading_day" in c]
         tweet_cols = [c for c in feature_cols if c not in finance_cols]
 
-        self.X_seq, self.X_tweet, self.y = [], [], []
+        self.X_seq, self.X_tweet, self.y, self.dates = [], [], [], []
         for i in range(seq_len, len(df)):
             if df["binary__is_trading_day"].iloc[i] == 0:
                 continue
             self.X_seq.append(df[finance_cols].iloc[i-seq_len:i].values)
             self.X_tweet.append(df[tweet_cols].iloc[i].values)
             self.y.append(df[target_col].iloc[i])
+            self.dates.append(df["date"].iloc[i])  # ⬅️ hier das passende Datum speichern
 
         self.X_seq = torch.tensor(np.array(self.X_seq), dtype=torch.float32)
         self.X_tweet = torch.tensor(np.array(self.X_tweet), dtype=torch.float32)
         self.y = torch.tensor(np.array(self.y), dtype=torch.float32).unsqueeze(1)
 
     def __len__(self): return len(self.y)
-    def __getitem__(self, idx): return self.X_seq[idx], self.X_tweet[idx], self.y[idx]
+    def __getitem__(self, idx):
+        return self.X_seq[idx], self.X_tweet[idx], self.y[idx], self.dates[idx]
+
 
 # 🧠 Modell
 class DualInputLSTM(nn.Module):
@@ -152,13 +170,15 @@ if __name__ == "__main__":
     input_dim_tweet = ds_train.X_tweet.shape[1]
     model = DualInputLSTM(input_dim_seq, input_dim_tweet, hidden_dim=64)
 
+    print(model)
+
     opt = torch.optim.Adam(model.parameters(), lr=LR)
     loss_fn = nn.MSELoss()
 
     for epoch in range(EPOCHS):
         model.train()
         loss_sum = 0
-        for x_seq, x_tweet, y in dl_train:
+        for x_seq, x_tweet, y, _ in dl_train:
             pred = model(x_seq, x_tweet)
             loss = loss_fn(pred, y)
             opt.zero_grad(); loss.backward(); opt.step()
@@ -166,18 +186,36 @@ if __name__ == "__main__":
         print(f"Epoch {epoch+1:03d} | Train Loss: {loss_sum / len(dl_train):.4f}")
 
     model.eval()
+
+
     def predict(loader):
-        all_preds, all_targets = [], []
+        all_preds, all_targets, all_dates = [], [], []
         with torch.no_grad():
-            for x_seq, x_tweet, y in loader:
+            for x_seq, x_tweet, y, dates in loader:
                 p = model(x_seq, x_tweet)
                 all_preds.extend(p.squeeze().tolist())
                 all_targets.extend(y.squeeze().tolist())
-        return np.array(all_preds), np.array(all_targets)
+                all_dates.extend(dates)
+        return np.array(all_preds), np.array(all_targets), all_dates
 
-    p_val, t_val = predict(dl_val)
-    p_test, t_test = predict(dl_test)
+
+    p_val, t_val, _ = predict(dl_val)  # wenn du val-Daten nicht loggen willst
+    p_test, t_test, test_dates = predict(dl_test)
+    test_dates = ds_test.dates  # ✅ echte T-0-Tage
 
     analyze(p_val, t_val, "Validation")
     analyze(p_test, t_test, "Test")
     eval_classification(p_test, t_test)
+
+    df_errors = pd.DataFrame({
+        "date": test_dates,
+        "pred": p_test,
+        "true": t_test,
+        "abs_error": np.abs(p_test - t_test)
+    }).sort_values("abs_error")
+
+    print("\n🔎 Tage mit geringstem Fehler:")
+    print(df_errors.head(10))
+    print("\n📉 Tage mit größtem Fehler:")
+    print(df_errors.tail(10))
+
