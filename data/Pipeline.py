@@ -128,7 +128,8 @@ def split_phases(df, cutoffs):
     df1 = df[df.date <= cutoffs[0]]
     df2 = df[(df.date > cutoffs[0]) & (df.date <= cutoffs[1])]
     df3 = df[df.date > cutoffs[1]]
-    return df1.reset_index(drop=True), df2.reset_index(drop=True), df3.reset_index(drop=True)
+    df4 = df[df.date > cutoffs[2]]
+    return df1.reset_index(drop=True), df2.reset_index(drop=True), df3.reset_index(drop=True), df4.reset_index(drop=True)
 
 # Time-based train/val/test
 
@@ -199,8 +200,8 @@ def run_pipeline():
             print(f"🧩 Merged features+target for {target_col}, shape: {df.shape}") #logging
             # 5) Split phases
             print(f"📆 Splitting into temporal phases...") #logging
-            full, p1, p2, p3 = df, *split_phases(df, CONFIG["phases"]["cutoffs"])
-            phase_map = {"full": full, "phase1": p1, "phase2": p2, "phase3": p3}
+            full, p1, p2, p3, p4 = df, *split_phases(df, CONFIG["phases"]["cutoffs"])
+            phase_map = {"full": full, "phase1": p1, "phase2": p2, "phase3": p3, "phase4": p4}
             # 6) For each phase: split, preprocess, save
             for phase_name, phase_df in phase_map.items():
                 print(f"\n🗂 Phase: {phase_name} ({len(phase_df)} rows)") #logging
