@@ -1,0 +1,246 @@
+import pandas as pd
+import numpy as np
+import torch
+import torch.nn as nn
+from torch.utils.data import Dataset, DataLoader
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import classification_report, accuracy_score, f1_score
+from pathlib import Path
+import matplotlib.pyplot as plt
+import os
+
+# 🔧 Hyperparameter & Konfiguration
+SEQ_LEN = 5
+BATCH_SIZE = 11
+EPOCHS = 100
+LR = 0.0005
+PATIENCE = 10    # für Early Stopping
+
+ASSETS = ["tesla", "sp500", "nasdaq", "bitcoin"]
+TARGETS = ["change_stockprice", "change_volume", "change_volatility"]
+PHASES = ["phase1", "phase2", "phase3", "full"]
+RESULT_CSV = Path("results_all_combinations.csv")
+
+# Verzeichnis für Feature-Importance Dateien
+FEATURE_IMP_DIR = Path("feature_importance")
+FEATURE_IMP_DIR.mkdir(exist_ok=True)
+
+# 🔸 Zu entfernende Spalten (DROP_COLS)
+DROP_COLS = [
+    # (Liste wie zuvor)
+    # ...
+]
+
+# 📦 Dataset (mit binären Labels für Klassifikation)
+class DualInputDataset(Dataset):
+    def __init__(self, df, target_col, seq_len):
+        feature_cols = [c for c in df.columns if c not in ["date", target_col] + DROP_COLS]
+        finance_cols = [c for c in feature_cols if c.startswith("counts__") or "stockprice" in c or "is_trading_day" in c]
+        tweet_cols = [c for c in feature_cols if c not in finance_cols]
+
+        self.X_seq, self.X_tweet, self.y = [], [], []
+        for i in range(seq_len, len(df)):
+            if df["binary__is_trading_day"].iloc[i] == 0:
+                continue
+            self.X_seq.append(df[finance_cols].iloc[i-seq_len:i].values)
+            self.X_tweet.append(df[tweet_cols].iloc[i].values)
+            label = 1.0 if df[target_col].iloc[i] > 0 else 0.0
+            self.y.append(label)
+
+        self.X_seq = torch.tensor(np.array(self.X_seq), dtype=torch.float32)
+        self.X_tweet = torch.tensor(np.array(self.X_tweet), dtype=torch.float32)
+        self.y = torch.tensor(np.array(self.y), dtype=torch.float32).unsqueeze(1)
+
+    def __len__(self): return len(self.y)
+    def __getitem__(self, idx): return self.X_seq[idx], self.X_tweet[idx], self.y[idx]
+
+# 🧠 Modell (bidirektional, mit Dropout & BatchNorm)
+class DualInputLSTM(nn.Module):
+    def __init__(self, num_finance_features, num_tweet_features, hidden_dim):
+        super().__init__()
+        self.lstm = nn.LSTM(
+            num_finance_features,
+            hidden_dim,
+            batch_first=True,
+            bidirectional=True,
+            dropout=0.2
+        )
+        self.tweet_net = nn.Sequential(
+            nn.BatchNorm1d(num_tweet_features),
+            nn.Linear(num_tweet_features, hidden_dim),
+            nn.ReLU(),
+            nn.Dropout(0.3)
+        )
+        # Head für binäre Klassifikation (Logits)
+        self.head = nn.Sequential(
+            nn.Linear(2*hidden_dim + hidden_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(hidden_dim, 1)
+        )
+
+    def forward(self, x_seq, x_tweet):
+        out, (h_n, _) = self.lstm(x_seq)
+        h_fin = torch.cat([h_n[-2], h_n[-1]], dim=1)
+        h_tweet = self.tweet_net(x_tweet)
+        h = torch.cat([h_fin, h_tweet], dim=1)
+        return self.head(h)
+
+# 🚀 Main: Schleifen über alle Kombinationen mit Scheduler & Early Stopping
+if __name__ == "__main__":
+    from torch.optim.lr_scheduler import ReduceLROnPlateau
+
+    results = []
+    BASE = Path("Data/combined_pipeline_outputs")
+
+    for asset in ASSETS:
+        for target in TARGETS:
+            for phase in PHASES:
+                fname = f"{asset}{target}_{{split}}_{phase}.csv"
+                def load_df(split):
+                    df = pd.read_csv(BASE / fname.format(split=split))
+                    return df.dropna(subset=[f"{asset}_{target}"]).reset_index(drop=True)
+
+                # Daten laden
+                df_train = load_df("train")
+                df_val   = load_df("val")
+                df_test  = load_df("test")
+
+                # Spalten für Skalierer bestimmen
+                feature_cols = [c for c in df_train.columns if c not in ["date", f"{asset}_{target}"] + DROP_COLS]
+                finance_cols = [c for c in feature_cols if c.startswith("counts__") or "stockprice" in c or "is_trading_day" in c]
+                tweet_cols   = [c for c in feature_cols if c not in finance_cols]
+
+                # Normalisierung
+                scaler_fin = StandardScaler().fit(df_train[finance_cols])
+                scaler_twt = StandardScaler().fit(df_train[tweet_cols])
+                for df in (df_train, df_val, df_test):
+                    df[finance_cols] = scaler_fin.transform(df[finance_cols])
+                    df[tweet_cols]   = scaler_twt.transform(df[tweet_cols])
+
+                # Dataset & DataLoader
+                ds_train = DualInputDataset(df_train, f"{asset}_{target}", SEQ_LEN)
+                ds_val   = DualInputDataset(df_val,   f"{asset}_{target}", SEQ_LEN)
+                ds_test  = DualInputDataset(df_test,  f"{asset}_{target}", SEQ_LEN)
+
+                dl_train = DataLoader(ds_train, batch_size=BATCH_SIZE, shuffle=True)
+                dl_val   = DataLoader(ds_val,   batch_size=BATCH_SIZE)
+                dl_test  = DataLoader(ds_test,  batch_size=BATCH_SIZE)
+
+                # Modell, Optimizer, Loss, Scheduler
+                input_dim_seq   = ds_train.X_seq.shape[2]
+                input_dim_tweet = ds_train.X_tweet.shape[1]
+                model = DualInputLSTM(input_dim_seq, input_dim_tweet, hidden_dim=64)
+                opt = torch.optim.Adam(model.parameters(), lr=LR)
+                loss_fn = nn.BCEWithLogitsLoss()
+                scheduler = ReduceLROnPlateau(opt, mode='min', patience=5, factor=0.5)
+
+                # Early Stopping
+                best_val = float('inf')
+                epochs_no_improve = 0
+                best_state = None
+
+                # Training
+                for epoch in range(1, EPOCHS+1):
+                    model.train()
+                    for x_seq, x_tweet, y in dl_train:
+                        logits = model(x_seq, x_tweet)
+                        loss = loss_fn(logits, y)
+                        opt.zero_grad()
+                        loss.backward()
+                        opt.step()
+
+                    # Validierungs-Loss
+                    model.eval()
+                    val_losses = []
+                    with torch.no_grad():
+                        for xs, xt, yv in dl_val:
+                            lv = loss_fn(model(xs, xt), yv)
+                            val_losses.append(lv.item())
+                    val_loss = np.mean(val_losses)
+                    scheduler.step(val_loss)
+                    print(f"Asset={asset} Target={target} Phase={phase} | Epoche {epoch:03d} | Val Loss: {val_loss:.4f}")
+
+                    # Early Stopping prüfen
+                    if val_loss < best_val:
+                        best_val = val_loss
+                        best_state = model.state_dict()
+                        epochs_no_improve = 0
+                    else:
+                        epochs_no_improve += 1
+                        if epochs_no_improve >= PATIENCE:
+                            print("Early stopping aktiv.")
+                            break
+
+                # Bestes Modell laden
+                model.load_state_dict(best_state)
+
+                # Test-Evaluation
+                model.eval()
+                all_logits, all_labels = [], []
+                with torch.no_grad():
+                    for xs, xt, yv in dl_test:
+                        all_logits.extend(model(xs, xt).squeeze().tolist())
+                        all_labels.extend(yv.squeeze().tolist())
+                probs = torch.sigmoid(torch.tensor(all_logits)).numpy()
+                preds = (probs > 0.5).astype(int)
+                labels = np.array(all_labels, dtype=int)
+
+                acc = accuracy_score(labels, preds)
+                f1  = f1_score(labels, preds)
+                report = classification_report(labels, preds, target_names=["Fallend","Steigend"])
+                print(report)
+
+                # Ergebnisse sammeln
+                results.append({
+                    "asset": asset,
+                    "target": target,
+                    "phase": phase,
+                    "val_loss": best_val,
+                    "accuracy": acc,
+                    "f1_score": f1
+                })
+
+                # 🗂 Feature Importance via Permutations
+                X_seq_test    = ds_test.X_seq
+                X_tweet_test  = ds_test.X_tweet
+                y_test        = ds_test.y.squeeze().numpy().astype(int)
+                # Baseline Accuracy
+                with torch.no_grad():
+                    base_logits = model(X_seq_test, X_tweet_test).squeeze()
+                base_preds   = (torch.sigmoid(base_logits).numpy() > 0.5).astype(int)
+                base_acc     = accuracy_score(y_test, base_preds)
+
+                feature_importances = []
+                # Permutation für Finance-Features
+                for idx, fname in enumerate(finance_cols):
+                    perm = torch.randperm(X_seq_test.size(0))
+                    X_seq_perm = X_seq_test.clone()
+                    X_seq_perm[:, :, idx] = X_seq_test[perm, :, idx]
+                    with torch.no_grad():
+                        logits_perm = model(X_seq_perm, X_tweet_test).squeeze()
+                    preds_perm = (torch.sigmoid(logits_perm).numpy() > 0.5).astype(int)
+                    acc_perm = accuracy_score(y_test, preds_perm)
+                    feature_importances.append((fname, base_acc - acc_perm))
+
+                # Permutation für Tweet-Features
+                for idx, fname in enumerate(tweet_cols):
+                    perm = torch.randperm(X_tweet_test.size(0))
+                    X_tweet_perm = X_tweet_test.clone()
+                    X_tweet_perm[:, idx] = X_tweet_test[perm, idx]
+                    with torch.no_grad():
+                        logits_perm = model(X_seq_test, X_tweet_perm).squeeze()
+                    preds_perm = (torch.sigmoid(logits_perm).numpy() > 0.5).astype(int)
+                    acc_perm = accuracy_score(y_test, preds_perm)
+                    feature_importances.append((fname, base_acc - acc_perm))
+
+                # Speichern als CSV
+                df_imp = pd.DataFrame(feature_importances, columns=["feature", "importance"])  
+                df_imp = df_imp.sort_values("importance", ascending=False)
+                imp_path = FEATURE_IMP_DIR / f"feature_importance_{asset}_{target}_{phase}.csv"
+                df_imp.to_csv(imp_path, index=False)
+                print(f"Feature importance saved to {imp_path}")
+
+    # Ergebnisse speichern
+    pd.DataFrame(results).to_csv(RESULT_CSV, index=False)
+    print(f"Alle Ergebnisse in {RESULT_CSV} geschrieben.")
