@@ -11,7 +11,7 @@ def parse_args():
     parser.add_argument(
         "--input-path", "-i",
         type=str,
-        default="data/finance_data/processing_financeData_target_variables.csv",
+        default="data/finance_data/financeData_target_variables.csv",
         help="Path to the input CSV file"
     )
     parser.add_argument(

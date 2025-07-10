@@ -30,7 +30,7 @@ CONFIG = {
         }
     },
     # Phase cutoffs
-    "phases": {"cutoffs": ["2022-03-31", "2024-01-31"]},
+    "phases": {"cutoffs": ["2018-03-06", "2022-10-26", "2024-07-12"]},
     # Output for combined train/val/test sets
     "output_dir": Path("Data/combined_pipeline_outputs")
 }

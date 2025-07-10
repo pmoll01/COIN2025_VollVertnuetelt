@@ -86,9 +86,4 @@ def run_financial_processing_scripts(assets: list[str], definitions: list[str]):
                 check=True
             )
 
-if __name__ == "__main__":
-    # Beispiel-Aufruf
-    run_financial_processing_scripts(
-        ["sp500", "bitcoin", "nasdaq", "tesla"],
-        ["_change_stockprice", "_change_volume", "_change_volatility"]
-    )
+
