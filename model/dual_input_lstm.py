@@ -1,4 +1,3 @@
-# dual_input_lstm.py
 import pandas as pd
 import numpy as np
 import torch
@@ -8,31 +7,26 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import classification_report, accuracy_score, f1_score
 from pathlib import Path
 import matplotlib.pyplot as plt
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f"💻 Verwende Gerät: {device}")
+import os
 
 # 🔧 Hyperparameter & Konfiguration
 SEQ_LEN = 5
-BATCH_SIZE = 5
+BATCH_SIZE = 11
 EPOCHS = 100
 LR = 0.0005
 PATIENCE = 10    # für Early Stopping
 
 ASSETS = ["tesla", "sp500", "nasdaq", "bitcoin"]
 TARGETS = ["change_stockprice", "change_volume", "change_volatility"]
-PHASES = ["phase1", "phase2", "phase3", "phase4", "full"]
+PHASES = ["phase1", "phase2", "phase3", "full"]
 RESULT_CSV = Path("results_all_combinations.csv")
+
+# Verzeichnis für Feature-Importance Dateien
+FEATURE_IMP_DIR = Path("feature_importance")
+FEATURE_IMP_DIR.mkdir(exist_ok=True)
 
 # 🔸 Zu entfernende Spalten (DROP_COLS)
 DROP_COLS = [
-    # 🔸 OCEAN Personality
-    "scores__Extroversion",
-    "scores__Neuroticism",
-    "scores__Agreeableness",
-    "scores__Conscientiousness",
-    "scores__Openness",
-
     # 🔸 Technical Analysis (ca. ⅔ raus, sinnvoll gruppiert)
     # SMA/EMA (raus bis auf 1)
     "counts__sp500_stockprice_sma_5", "counts__sp500_stockprice_sma_10", "counts__sp500_stockprice_sma_50", "counts__sp500_stockprice_sma_100", "counts__sp500_stockprice_ema_12",
@@ -70,34 +64,68 @@ DROP_COLS = [
     "counts__tesla_mfi_14",
     "counts__bitcoin_mfi_14",
 
-    # 🔸 Topic scores (nur 4–5 behalten, Rest raus)
-    # "scores__neg",
-    # "scores__neu",
-    # "scores__pos",
-    # "scores__polarized",
-    # "scores__anger",
-    # "scores__disgust",
-    # "scores__fear",
-    # "scores__joy",
-    # "scores__neutral",
-    # "scores__sadness",
-    # "scores__surprise"
-    "scores__arts_culture",
-    "scores__celebrity_pop_culture",
-    "scores__diaries_daily_life",
-    "scores__family",
-    "scores__fashion_style",
-    "scores__film_tv_video",
-    "scores__fitness_&_health",
-    "scores__food_&_dining",
-    "scores__gaming",
-    "scores__learning_educational",
-    "scores__music",
-#   "scores__news_social_concern",
-    "scores__other_hobbies",
-    "scores__sports",
-    "scores__travel_adventure",
-    "scores__youth_student_life",
+    # 🔸 Twitter Daten
+    # "counts_tweet_count",
+    # "countsnlp_tweet_count",
+    # "countstesla",
+    # "countsstock",
+    # "countsmarket",
+    # "countsprice",
+    # "countsprofit",
+    # "countsloss",
+    # "countsrevenue",
+    # "countsinflation",
+    # "countsinterest",
+    # "countsbitcoin",
+    # "countsdogecoin",
+    # "countscrypto",
+    # "countsethereum",
+    # "countsspacex",
+    # "countsmodel",
+    # "countscybertruck",
+    # "countsstarship",
+    # "countsbuy",
+    # "countssell",
+    # "countslikeCount",
+    # "countsquoteCount",
+    # "countsretweetCount",
+    # "countsreplyCount",
+    # "scoresneg",
+    # "scoresneu",
+    # "scorespos",
+    # "scorespolarized",
+    # "scoresanger",
+    # "scoresdisgust",
+    # "scoresfear",
+    # "scoresjoy",
+    # "scoresneutral",
+    # "scoressadness",
+    # "scoressurprise",
+    # "scoresExtroversion",
+    # "scoresNeuroticism",
+    # "scoresAgreeableness",
+    # "scoresConscientiousness",
+    # "scoresOpenness",
+    # "scoresarts_culture",
+    # "scoresbusiness_entrepreneurs",
+    # "scorescelebrity_pop_culture",
+    # "scoresdiaries_daily_life",
+    # "scoresfamily",
+    # "scoresfashion_style",
+    # "scoresfilm_tv_video",
+    # "scoresfitness&health",
+    # "scoresfood&dining",
+    # "scoresgaming",
+    # "scoreslearning_educational",
+    # "scoresmusic",
+    # "scoresnews_social_concern",
+    # "scoresother_hobbies",
+    # "scoresrelationships",
+    # "scoresscience_technology",
+    # "scoressports",
+    # "scorestravel_adventure",
+    # "scoresyouth_student_life",
+    # "binaryno_tweets"
 ]
 
 # 📦 Dataset (mit binären Labels für Klassifikation)
@@ -138,7 +166,7 @@ class DualInputLSTM(nn.Module):
             nn.LayerNorm(num_tweet_features),
             nn.Linear(num_tweet_features, hidden_dim),
             nn.ReLU(),
-            nn.Dropout(0.2)
+            nn.Dropout(0.3)
         )
         # Head für binäre Klassifikation (Logits)
         self.head = nn.Sequential(
@@ -149,13 +177,9 @@ class DualInputLSTM(nn.Module):
         )
 
     def forward(self, x_seq, x_tweet):
-        # LSTM-Output
         out, (h_n, _) = self.lstm(x_seq)
-        # h_n: [num_layers*2, batch, hidden_dim]
         h_fin = torch.cat([h_n[-2], h_n[-1]], dim=1)
-        # Tweet-Netz
         h_tweet = self.tweet_net(x_tweet)
-        # Kombinieren
         h = torch.cat([h_fin, h_tweet], dim=1)
         return self.head(h)
 
@@ -196,28 +220,27 @@ if __name__ == "__main__":
                 ds_val   = DualInputDataset(df_val,   f"{asset}_{target}", SEQ_LEN)
                 ds_test  = DualInputDataset(df_test,  f"{asset}_{target}", SEQ_LEN)
 
-                dl_train = DataLoader(ds_train, batch_size=BATCH_SIZE, shuffle=True, drop_last=True)
+                dl_train = DataLoader(ds_train, batch_size=BATCH_SIZE, shuffle=True)
                 dl_val   = DataLoader(ds_val,   batch_size=BATCH_SIZE)
                 dl_test  = DataLoader(ds_test,  batch_size=BATCH_SIZE)
 
                 # Modell, Optimizer, Loss, Scheduler
                 input_dim_seq   = ds_train.X_seq.shape[2]
                 input_dim_tweet = ds_train.X_tweet.shape[1]
-                model = DualInputLSTM(input_dim_seq, input_dim_tweet, hidden_dim=64).to(device)
+                model = DualInputLSTM(input_dim_seq, input_dim_tweet, hidden_dim=64)
                 opt = torch.optim.Adam(model.parameters(), lr=LR)
                 loss_fn = nn.BCEWithLogitsLoss()
                 scheduler = ReduceLROnPlateau(opt, mode='min', patience=5, factor=0.5)
 
                 # Early Stopping
                 best_val = float('inf')
-                epochs_no_improve = 2
+                epochs_no_improve = 0
                 best_state = None
 
                 # Training
                 for epoch in range(1, EPOCHS+1):
                     model.train()
                     for x_seq, x_tweet, y in dl_train:
-                        x_seq, x_tweet, y = x_seq.to(device), x_tweet.to(device), y.to(device)
                         logits = model(x_seq, x_tweet)
                         loss = loss_fn(logits, y)
                         opt.zero_grad()
@@ -229,7 +252,6 @@ if __name__ == "__main__":
                     val_losses = []
                     with torch.no_grad():
                         for xs, xt, yv in dl_val:
-                            xs, xt, yv = xs.to(device), xt.to(device), yv.to(device)
                             lv = loss_fn(model(xs, xt), yv)
                             val_losses.append(lv.item())
                     val_loss = np.mean(val_losses)
@@ -255,10 +277,8 @@ if __name__ == "__main__":
                 all_logits, all_labels = [], []
                 with torch.no_grad():
                     for xs, xt, yv in dl_test:
-                        xs, xt, yv = xs.to(device), xt.to(device), yv.to(device)
-                        logits = model(xs, xt).squeeze()
-                        all_logits += logits.flatten().tolist()
-                        all_labels += yv.squeeze().flatten().tolist()
+                        all_logits.extend(model(xs, xt).squeeze().tolist())
+                        all_labels.extend(yv.squeeze().tolist())
                 probs = torch.sigmoid(torch.tensor(all_logits)).numpy()
                 preds = (probs > 0.5).astype(int)
                 labels = np.array(all_labels, dtype=int)
@@ -278,7 +298,46 @@ if __name__ == "__main__":
                     "f1_score": f1
                 })
 
+                # 🗂 Feature Importance via Permutations
+                X_seq_test    = ds_test.X_seq
+                X_tweet_test  = ds_test.X_tweet
+                y_test        = ds_test.y.squeeze().numpy().astype(int)
+                # Baseline Accuracy
+                with torch.no_grad():
+                    base_logits = model(X_seq_test, X_tweet_test).squeeze()
+                base_preds   = (torch.sigmoid(base_logits).numpy() > 0.5).astype(int)
+                base_acc     = accuracy_score(y_test, base_preds)
+
+                feature_importances = []
+                # Permutation für Finance-Features
+                for idx, fname in enumerate(finance_cols):
+                    perm = torch.randperm(X_seq_test.size(0))
+                    X_seq_perm = X_seq_test.clone()
+                    X_seq_perm[:, :, idx] = X_seq_test[perm, :, idx]
+                    with torch.no_grad():
+                        logits_perm = model(X_seq_perm, X_tweet_test).squeeze()
+                    preds_perm = (torch.sigmoid(logits_perm).numpy() > 0.5).astype(int)
+                    acc_perm = accuracy_score(y_test, preds_perm)
+                    feature_importances.append((fname, base_acc - acc_perm))
+
+                # Permutation für Tweet-Features
+                for idx, fname in enumerate(tweet_cols):
+                    perm = torch.randperm(X_tweet_test.size(0))
+                    X_tweet_perm = X_tweet_test.clone()
+                    X_tweet_perm[:, idx] = X_tweet_test[perm, idx]
+                    with torch.no_grad():
+                        logits_perm = model(X_seq_test, X_tweet_perm).squeeze()
+                    preds_perm = (torch.sigmoid(logits_perm).numpy() > 0.5).astype(int)
+                    acc_perm = accuracy_score(y_test, preds_perm)
+                    feature_importances.append((fname, base_acc - acc_perm))
+
+                # Speichern als CSV
+                df_imp = pd.DataFrame(feature_importances, columns=["feature", "importance"])
+                df_imp = df_imp.sort_values("importance", ascending=False)
+                imp_path = FEATURE_IMP_DIR / f"feature_importance_{asset}_{target}_{phase}.csv"
+                df_imp.to_csv(imp_path, index=False)
+                print(f"Feature importance saved to {imp_path}")
+
     # Ergebnisse speichern
     pd.DataFrame(results).to_csv(RESULT_CSV, index=False)
     print(f"Alle Ergebnisse in {RESULT_CSV} geschrieben.")
-
