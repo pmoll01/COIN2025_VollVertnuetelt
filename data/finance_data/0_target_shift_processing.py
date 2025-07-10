@@ -39,7 +39,13 @@ def main():
     # Create shifted target
     target = args.target_column
     shifted_name = f"target_{target}_next"
-    df[shifted_name] = df[target].shift(-1)
+
+
+
+    ################################### fix ###################################
+    #shift ist garnicht mehr notwendig, da prediction auf t+0 und nicht wie vorher t+1
+    # df[shifted_name] = df[target].shift(-1)
+    df[shifted_name] = df[target]
 
     # Drop last row (no valid next-day target)
     df = df.iloc[:-1].copy()
