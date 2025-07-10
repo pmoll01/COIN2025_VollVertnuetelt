@@ -27,8 +27,106 @@ FEATURE_IMP_DIR.mkdir(exist_ok=True)
 
 # 🔸 Zu entfernende Spalten (DROP_COLS)
 DROP_COLS = [
-    # (Liste wie zuvor)
-    # ...
+    # 🔸 Technical Analysis (ca. ⅔ raus, sinnvoll gruppiert)
+    # SMA/EMA (raus bis auf 1)
+    "counts__sp500_stockprice_sma_5", "counts__sp500_stockprice_sma_10", "counts__sp500_stockprice_sma_50", "counts__sp500_stockprice_sma_100", "counts__sp500_stockprice_ema_12",
+    "counts__nasdaq_stockprice_sma_5", "counts__nasdaq_stockprice_sma_10", "counts__nasdaq_stockprice_sma_50", "counts__nasdaq_stockprice_sma_100", "counts__nasdaq_stockprice_ema_12",
+    "counts__tesla_stockprice_sma_5", "counts__tesla_stockprice_sma_10", "counts__tesla_stockprice_sma_50", "counts__tesla_stockprice_sma_100", "counts__tesla_stockprice_ema_12",
+    "counts__bitcoin_stockprice_sma_5", "counts__bitcoin_stockprice_sma_10", "counts__bitcoin_stockprice_sma_50", "counts__bitcoin_stockprice_sma_100", "counts__bitcoin_stockprice_ema_12",
+
+    # MACD (behalte nur die Linie)
+    "counts__sp500_stockprice_macd_signal", "counts__sp500_stockprice_macd_hist",
+    "counts__nasdaq_stockprice_macd_signal", "counts__nasdaq_stockprice_macd_hist",
+    "counts__tesla_stockprice_macd_signal", "counts__tesla_stockprice_macd_hist",
+    "counts__bitcoin_stockprice_macd_signal", "counts__bitcoin_stockprice_macd_hist",
+
+    # ATR und DMI (ADX behalten)
+    "counts__sp500_atr_14", "counts__sp500_pdi_14", "counts__sp500_mdi_14", "counts__sp500_dx_14",
+    "counts__nasdaq_atr_14", "counts__nasdaq_pdi_14", "counts__nasdaq_mdi_14", "counts__nasdaq_dx_14",
+    "counts__tesla_atr_14", "counts__tesla_pdi_14", "counts__tesla_mdi_14", "counts__tesla_dx_14",
+    "counts__bitcoin_atr_14", "counts__bitcoin_pdi_14", "counts__bitcoin_mdi_14", "counts__bitcoin_dx_14",
+
+    # Stochastic raus
+    "counts__sp500_stoch_k_14", "counts__sp500_stoch_d_3",
+    "counts__nasdaq_stoch_k_14", "counts__nasdaq_stoch_d_3",
+    "counts__tesla_stoch_k_14", "counts__tesla_stoch_d_3",
+    "counts__bitcoin_stoch_k_14", "counts__bitcoin_stoch_d_3",
+
+    # Momentum/RoC raus (bis auf momentum_21)
+    "counts__sp500_stockprice_momentum_7", "counts__sp500_stockprice_roc_7", "counts__sp500_stockprice_roc_21",
+    "counts__nasdaq_stockprice_momentum_7", "counts__nasdaq_stockprice_roc_7", "counts__nasdaq_stockprice_roc_21",
+    "counts__tesla_stockprice_momentum_7", "counts__tesla_stockprice_roc_7", "counts__tesla_stockprice_roc_21",
+    "counts__bitcoin_stockprice_momentum_7", "counts__bitcoin_stockprice_roc_7", "counts__bitcoin_stockprice_roc_21",
+
+    # OBV behalten, MFI raus
+    "counts__sp500_mfi_14",
+    "counts__nasdaq_mfi_14",
+    "counts__tesla_mfi_14",
+    "counts__bitcoin_mfi_14",
+
+    # 🔸 Twitter Daten
+    "date",
+    "tweet_count",
+    "likeCount",
+    "quoteCount",
+    "retweetCount",
+    "replyCount",
+    "neg",
+    "neu",
+    "pos",
+    "polarized",
+    "nlp_tweet_count",
+    "anger",
+    "disgust",
+    "fear",
+    "joy",
+    "neutral",
+    "sadness",
+    "surprise",
+    "Extroversion",
+    "Neuroticism",
+    "Agreeableness",
+    "Conscientiousness",
+    "Openness",
+    "tesla",
+    "stock",
+    "market",
+    "price",
+    "profit",
+    "loss",
+    "revenue",
+    "inflation",
+    "interest",
+    "bitcoin",
+    "dogecoin",
+    "crypto",
+    "ethereum",
+    "spacex",
+    "model",
+    "cybertruck",
+    "starship",
+    "buy",
+    "sell",
+    "arts_culture",
+    "business_entrepreneurs",
+    "celebrity_pop_culture",
+    "diaries_daily_life",
+    "family",
+    "fashion_style",
+    "film_tv_video",
+    "fitness_&_health",
+    "food_&_dining",
+    "gaming",
+    "learning_educational",
+    "music",
+    "news_social_concern",
+    "other_hobbies",
+    "relationships",
+    "science_technology",
+    "sports",
+    "travel_adventure",
+    "youth_student_life",
+    "no_tweets"
 ]
 
 # 📦 Dataset (mit binären Labels für Klassifikation)
