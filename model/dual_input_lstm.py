@@ -1,4 +1,4 @@
-# v2
+# v3
 import pandas as pd
 import numpy as np
 import torch
@@ -14,35 +14,35 @@ from pathlib import Path
 SEQ_LEN = 5
 BATCH_SIZE = 11
 EPOCHS = 100
-LR = 0.0005
+LR = 0.001
 ASSETS = ["tesla", "sp500", "nasdaq", "bitcoin"]
 TARGETS = ["change_stockprice", "change_volume", "change_volatility"]
 PHASES = ["phase1", "phase2", "phase3", "phase4", "full"]
 
-RESULT_CSV = Path("results_all_scenarios_v2_WITHOUT_TWITTER_DATA.csv")
-FEATURE_IMP_DIR = Path("feature_importance_all_scenarios_v2_WITHOUT_TWITTER_DATA")
+RESULT_CSV = Path("results_all_scenarios_v3_WITH_TWITTER_DATA.csv")
+FEATURE_IMP_DIR = Path("feature_importance_all_scenarios_v3_WITH_TWITTER_DATA")
 FEATURE_IMP_DIR.mkdir(exist_ok=True)
 
 # 🔸 Zu entfernende Spalten (optional)
 DROP_COLS = [
-    # # 🔸 Technical Analysis (ca. ⅔ raus, sinnvoll gruppiert)
-    # # SMA/EMA (raus bis auf 1)
-    # "counts__sp500_stockprice_sma_5", "counts__sp500_stockprice_sma_10", "counts__sp500_stockprice_sma_50", "counts__sp500_stockprice_sma_100", "counts__sp500_stockprice_ema_12",
-    # "counts__nasdaq_stockprice_sma_5", "counts__nasdaq_stockprice_sma_10", "counts__nasdaq_stockprice_sma_50", "counts__nasdaq_stockprice_sma_100", "counts__nasdaq_stockprice_ema_12",
-    # "counts__tesla_stockprice_sma_5", "counts__tesla_stockprice_sma_10", "counts__tesla_stockprice_sma_50", "counts__tesla_stockprice_sma_100", "counts__tesla_stockprice_ema_12",
-    # "counts__bitcoin_stockprice_sma_5", "counts__bitcoin_stockprice_sma_10", "counts__bitcoin_stockprice_sma_50", "counts__bitcoin_stockprice_sma_100", "counts__bitcoin_stockprice_ema_12",
+    # 🔸 Technical Analysis (ca. ⅔ raus, sinnvoll gruppiert)
+    # SMA/EMA (raus bis auf 1)
+    "counts__sp500_stockprice_sma_5", "counts__sp500_stockprice_sma_10", "counts__sp500_stockprice_sma_50", "counts__sp500_stockprice_sma_100", "counts__sp500_stockprice_ema_12",
+    "counts__nasdaq_stockprice_sma_5", "counts__nasdaq_stockprice_sma_10", "counts__nasdaq_stockprice_sma_50", "counts__nasdaq_stockprice_sma_100", "counts__nasdaq_stockprice_ema_12",
+    "counts__tesla_stockprice_sma_5", "counts__tesla_stockprice_sma_10", "counts__tesla_stockprice_sma_50", "counts__tesla_stockprice_sma_100", "counts__tesla_stockprice_ema_12",
+    "counts__bitcoin_stockprice_sma_5", "counts__bitcoin_stockprice_sma_10", "counts__bitcoin_stockprice_sma_50", "counts__bitcoin_stockprice_sma_100", "counts__bitcoin_stockprice_ema_12",
 
-    # # MACD (behalte nur die Linie)
-    # "counts__sp500_stockprice_macd_signal", "counts__sp500_stockprice_macd_hist",
-    # "counts__nasdaq_stockprice_macd_signal", "counts__nasdaq_stockprice_macd_hist",
-    # "counts__tesla_stockprice_macd_signal", "counts__tesla_stockprice_macd_hist",
-    # "counts__bitcoin_stockprice_macd_signal", "counts__bitcoin_stockprice_macd_hist",
+    # MACD (behalte nur die Linie)
+    "counts__sp500_stockprice_macd_signal", "counts__sp500_stockprice_macd_hist",
+    "counts__nasdaq_stockprice_macd_signal", "counts__nasdaq_stockprice_macd_hist",
+    "counts__tesla_stockprice_macd_signal", "counts__tesla_stockprice_macd_hist",
+    "counts__bitcoin_stockprice_macd_signal", "counts__bitcoin_stockprice_macd_hist",
 
-    # # ATR und DMI (ADX behalten)
-    # "counts__sp500_atr_14", "counts__sp500_pdi_14", "counts__sp500_mdi_14", "counts__sp500_dx_14",
-    # "counts__nasdaq_atr_14", "counts__nasdaq_pdi_14", "counts__nasdaq_mdi_14", "counts__nasdaq_dx_14",
-    # "counts__tesla_atr_14", "counts__tesla_pdi_14", "counts__tesla_mdi_14", "counts__tesla_dx_14",
-    # "counts__bitcoin_atr_14", "counts__bitcoin_pdi_14", "counts__bitcoin_mdi_14", "counts__bitcoin_dx_14",
+    # ATR und DMI (ADX behalten)
+    "counts__sp500_atr_14", "counts__sp500_pdi_14", "counts__sp500_mdi_14", # "counts__sp500_dx_14",
+    "counts__nasdaq_atr_14", "counts__nasdaq_pdi_14", "counts__nasdaq_mdi_14", # "counts__nasdaq_dx_14",
+    "counts__tesla_atr_14", "counts__tesla_pdi_14", "counts__tesla_mdi_14", # "counts__tesla_dx_14",
+    "counts__bitcoin_atr_14", "counts__bitcoin_pdi_14", "counts__bitcoin_mdi_14", # "counts__bitcoin_dx_14",
 
     # # Stochastic raus
     # "counts__sp500_stoch_k_14", "counts__sp500_stoch_d_3",
@@ -50,45 +50,49 @@ DROP_COLS = [
     # "counts__tesla_stoch_k_14", "counts__tesla_stoch_d_3",
     # "counts__bitcoin_stoch_k_14", "counts__bitcoin_stoch_d_3",
 
-    # # Momentum/RoC raus (bis auf momentum_21)
-    # "counts__sp500_stockprice_momentum_7", "counts__sp500_stockprice_roc_7", "counts__sp500_stockprice_roc_21",
-    # "counts__nasdaq_stockprice_momentum_7", "counts__nasdaq_stockprice_roc_7", "counts__nasdaq_stockprice_roc_21",
-    # "counts__tesla_stockprice_momentum_7", "counts__tesla_stockprice_roc_7", "counts__tesla_stockprice_roc_21",
-    # "counts__bitcoin_stockprice_momentum_7", "counts__bitcoin_stockprice_roc_7", "counts__bitcoin_stockprice_roc_21",
+    # Momentum/RoC raus (bis auf momentum_21)
+    "counts__sp500_stockprice_momentum_7", "counts__sp500_stockprice_roc_7", "counts__sp500_stockprice_roc_21",
+    "counts__nasdaq_stockprice_momentum_7", "counts__nasdaq_stockprice_roc_7", "counts__nasdaq_stockprice_roc_21",
+    "counts__tesla_stockprice_momentum_7", "counts__tesla_stockprice_roc_7", "counts__tesla_stockprice_roc_21",
+    "counts__bitcoin_stockprice_momentum_7", "counts__bitcoin_stockprice_roc_7", "counts__bitcoin_stockprice_roc_21",
 
-    # # OBV behalten, MFI raus
-    # "counts__sp500_mfi_14",
-    # "counts__nasdaq_mfi_14",
-    # "counts__tesla_mfi_14",
-    # "counts__bitcoin_mfi_14",
+    # OBV behalten, MFI raus
+    "counts__sp500_mfi_14",
+    "counts__nasdaq_mfi_14",
+    "counts__tesla_mfi_14",
+    "counts__bitcoin_mfi_14",
 
     # 🔸 Twitter Daten
     # 🟦 Tweet Counts & Engagement
-    "counts__tweet_count", "counts__nlp_tweet_count",
-    "counts__likeCount", "counts__quoteCount", "counts__retweetCount", "counts__replyCount",
+ #   "counts__tweet_count", "counts__nlp_tweet_count",
+ #   "counts__likeCount", "counts__quoteCount", "counts__retweetCount", "counts__replyCount",
     # 🟨 Keywords (Finance, Assets, Companies)
-    "counts__tesla", "counts__stock", "counts__market", "counts__price",
-    "counts__profit", "counts__loss", "counts__revenue", "counts__inflation", "counts__interest",
-    "counts__bitcoin", "counts__dogecoin", "counts__crypto", "counts__ethereum",
-    "counts__spacex", "counts__model", "counts__cybertruck", "counts__starship",
-    "counts__buy", "counts__sell",
+ #   "counts__tesla", "counts__stock", "counts__market", "counts__price",
+ #   "counts__profit", "counts__loss", "counts__revenue", "counts__inflation", "counts__interest",
+ #   "counts__bitcoin", "counts__dogecoin", "counts__crypto", "counts__ethereum",
+ #   "counts__spacex", "counts__model", "counts__cybertruck", "counts__starship",
+ #   "counts__buy", "counts__sell",
     # 🔵 VADER Sentiment Scores
-    "scores__neg", "scores__neu", "scores__pos", "scores__polarized",
+ #   "scores__neg", "scores__neu", "scores__pos", "scores__polarized",
     # 🟣 NRC Emotions
-    "scores__anger", "scores__disgust", "scores__fear", "scores__joy",
-    "scores__neutral", "scores__sadness", "scores__surprise",
+ #   "scores__anger", "scores__disgust", "scores__fear", "scores__joy",
+ #   "scores__neutral", "scores__sadness", "scores__surprise",
     # 🟤 OCEAN Personality
     "scores__Extroversion", "scores__Neuroticism", "scores__Agreeableness",
     "scores__Conscientiousness", "scores__Openness",
     # 🟠 Topics (ZeroShot)
-    "scores__arts_culture", "scores__business_entrepreneurs", "scores__celebrity_pop_culture",
+    "scores__arts_culture",
+ #   "scores__business_entrepreneurs",
+    "scores__celebrity_pop_culture",
     "scores__diaries_daily_life", "scores__family", "scores__fashion_style", "scores__film_tv_video",
     "scores__fitness_&_health", "scores__food_&_dining", "scores__gaming",
-    "scores__learning_educational", "scores__music", "scores__news_social_concern",
-    "scores__other_hobbies", "scores__relationships", "scores__science_technology",
+    "scores__learning_educational", "scores__music",
+ #   "scores__news_social_concern",
+    "scores__other_hobbies", "scores__relationships",
+ #   "scores__science_technology",
     "scores__sports", "scores__travel_adventure", "scores__youth_student_life",
     # ⚫ Binary Flags
-    "binary__no_tweets"
+ #   "binary__no_tweets"
 ]
 
 class DualInputDataset(Dataset):
@@ -106,8 +110,9 @@ class DualInputDataset(Dataset):
                 continue
             self.X_seq.append(df[finance_cols].iloc[i-seq_len:i].values)
             self.X_tweet.append(df[tweet_cols].iloc[i].values)
-            label = 1.0 if df[target_col].iloc[i] > 0 else 0.0
-            self.y.append(label)
+            # label = 1.0 if df[target_col].iloc[i] > 0 else 0.0 #dumm mit klassifikationslabels zu trainieren, wenn die vorhersagen numerisch sind!!!
+            # self.y.append(label)
+            self.y.append(df[target_col].iloc[i])
 
         self.X_seq = torch.tensor(np.array(self.X_seq), dtype=torch.float32)
         self.X_tweet = torch.tensor(np.array(self.X_tweet), dtype=torch.float32)
@@ -126,7 +131,7 @@ class DualInputLSTM(nn.Module):
                 nn.LayerNorm(num_tweet_features),
                 nn.Linear(num_tweet_features, hidden_dim),
                 nn.GELU(),
-                nn.Dropout(0.1)
+                nn.Dropout(0.3)
             )
         self.head = nn.Sequential(
             nn.Linear(2 * hidden_dim + (hidden_dim if self.has_tweet else 0), hidden_dim),
@@ -177,13 +182,15 @@ if __name__ == "__main__":
                 input_dim_tweet = ds_train.X_tweet.shape[1]
                 model = DualInputLSTM(input_dim_seq, input_dim_tweet, hidden_dim=64)
 
-                labels_np = ds_train.y.squeeze().numpy()
-                class_weights = compute_class_weight(class_weight='balanced', classes=np.array([0, 1]), y=labels_np)
-                pos_weight_tensor = torch.tensor([class_weights[1]], dtype=torch.float32)
-
-                loss_fn = nn.BCEWithLogitsLoss(pos_weight=pos_weight_tensor)
+                ##############
+                # labels_np = ds_train.y.squeeze().numpy()
+                # class_weights = compute_class_weight(class_weight='balanced', classes=np.array([0, 1]), y=labels_np)
+                # pos_weight_tensor = torch.tensor([class_weights[1]], dtype=torch.float32)
+                # loss_fn = nn.BCEWithLogitsLoss(pos_weight=pos_weight_tensor) #auskommentiert weil dumm mit klassifikations loss function zu trainieren wenn die vorhersagen numerisch sind!!!
+                ##################
+                loss_fn = nn.MSELoss()
                 opt = torch.optim.Adam(model.parameters(), lr=LR)
-                scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(opt, mode="min", factor=0.5, patience=5, verbose=False)
+                scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(opt, mode="min", factor=0.5, patience=5)
 
                 lr_list, loss_list = [], []
 
@@ -215,9 +222,11 @@ if __name__ == "__main__":
                         all_logits.extend(model(xs, xt).squeeze().tolist())
                         all_labels.extend(yv.squeeze().tolist())
 
-                probs = torch.sigmoid(torch.tensor(all_logits)).numpy()
-                preds = (probs > 0.5).astype(int)
-                labels = np.array(all_labels, dtype=int)
+                # probs = torch.sigmoid(torch.tensor(all_logits)).numpy() #auskommentiert weil: Da all_logits jetzt echte Vorhersagen sind (z.B. +0.01 oder -0.07), brauchst du kein sigmoid mehr.
+                # preds = (probs > 0.5).astype(int)
+                preds = (np.array(all_logits) > 0).astype(int)
+
+                labels = (np.array(all_labels) > 0).astype(int)
 
                 acc = accuracy_score(labels, preds)
                 f1 = f1_score(labels, preds, zero_division=0)
@@ -259,32 +268,49 @@ if __name__ == "__main__":
                 X_seq_test = ds_test.X_seq
                 X_tweet_test = ds_test.X_tweet
                 y_test = ds_test.y.squeeze().numpy().astype(int)
+
                 with torch.no_grad():
                     base_logits = model(X_seq_test, X_tweet_test).squeeze()
-                base_preds = (torch.sigmoid(base_logits).numpy() > 0.5).astype(int)
+                # Threshold direkt auf den rohen Logits
+                base_preds = (base_logits.numpy() > 0).astype(int)
                 base_acc = accuracy_score(y_test, base_preds)
 
                 feature_importances = []
+                import statistics
+
+                N_PERMS = 5  # Anzahl der Permutationen pro Feature
+
+                # Finance-Features
                 for idx, fname in enumerate(ds_test.finance_cols):
-                    perm = torch.randperm(X_seq_test.size(0))
-                    X_seq_perm = X_seq_test.clone()
-                    X_seq_perm[:, :, idx] = X_seq_test[perm, :, idx]
-                    with torch.no_grad():
-                        logits_perm = model(X_seq_perm, X_tweet_test).squeeze()
-                    preds_perm = (torch.sigmoid(logits_perm).numpy() > 0.5).astype(int)
-                    acc_perm = accuracy_score(y_test, preds_perm)
-                    feature_importances.append((fname, base_acc - acc_perm))
+                    drops = []
+                    for _ in range(N_PERMS):
+                        perm = torch.randperm(X_seq_test.size(0))
+                        X_seq_perm = X_seq_test.clone()
+                        X_seq_perm[:, :, idx] = X_seq_test[perm, :, idx]
+                        with torch.no_grad():
+                            logits_perm = model(X_seq_perm, X_tweet_test).squeeze()
+                        preds_perm = (logits_perm.numpy() > 0).astype(int)
+                        acc_perm = accuracy_score(y_test, preds_perm)
+                        drops.append(base_acc - acc_perm)
+                    mean_drop = statistics.mean(drops)
+                    feature_importances.append((fname, mean_drop))
 
+                # Tweet-Features
                 for idx, fname in enumerate(ds_test.tweet_cols):
-                    perm = torch.randperm(X_tweet_test.size(0))
-                    X_tweet_perm = X_tweet_test.clone()
-                    X_tweet_perm[:, idx] = X_tweet_test[perm, idx]
-                    with torch.no_grad():
-                        logits_perm = model(X_seq_test, X_tweet_perm).squeeze()
-                    preds_perm = (torch.sigmoid(logits_perm).numpy() > 0.5).astype(int)
-                    acc_perm = accuracy_score(y_test, preds_perm)
-                    feature_importances.append((fname, base_acc - acc_perm))
+                    drops = []
+                    for _ in range(N_PERMS):
+                        perm = torch.randperm(X_tweet_test.size(0))
+                        X_tweet_perm = X_tweet_test.clone()
+                        X_tweet_perm[:, idx] = X_tweet_test[perm, idx]
+                        with torch.no_grad():
+                            logits_perm = model(X_seq_test, X_tweet_perm).squeeze()
+                        preds_perm = (logits_perm.numpy() > 0).astype(int)
+                        acc_perm = accuracy_score(y_test, preds_perm)
+                        drops.append(base_acc - acc_perm)
+                    mean_drop = statistics.mean(drops)
+                    feature_importances.append((fname, mean_drop))
 
+                # Ergebnisse speichern
                 df_imp = pd.DataFrame(feature_importances, columns=["feature", "importance"])
                 df_imp = df_imp.sort_values("importance", ascending=False)
                 imp_path = FEATURE_IMP_DIR / f"feature_importance_{asset}_{target}_{phase}.csv"
