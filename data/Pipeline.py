@@ -191,7 +191,7 @@ def run_pipeline():
             feat_df = feat_df.merge(load_is_trading_day(), on="date", how="left")
             # Optionally merge twitter features
             tw_df = load_twitter_features()
-            feat_df = feat_df.merge(tw_df, on="date", how="left")
+            feat_df = feat_df.merge(tw_df, on="date", how="right") #sonst ist date spalte des resultierenden df bis Juli und twitter daten gehen nur bis april
             print(f"📊 Feature shape after twitter merge ({asset}): {feat_df.shape}") #logging
             # 3) Load target
             tgt_df = load_target(target_col)
