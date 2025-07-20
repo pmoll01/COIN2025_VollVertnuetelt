@@ -12,37 +12,37 @@ ASSETS = ["tesla", "sp500", "nasdaq", "bitcoin"]
 TARGETS = ["change_stockprice", "change_volume", "change_volatility"]
 PHASES = ["phase1", "phase2", "phase3", "phase4", "full"]
 
-RESULT_CSV = Path("results_all_scenarios_mlp_WITHOUT_TWITTER_DATA.csv")
+RESULT_CSV = Path("results_all_scenarios_mlp.csv")
 
 # 🔸 Zu entfernende Spalten (optional)
 DROP_COLS = [
-    # 🔸 Twitter Daten
-    # 🟦 Tweet Counts & Engagement
-    "counts__tweet_count", "counts__nlp_tweet_count",
-    "counts__likeCount", "counts__quoteCount", "counts__retweetCount", "counts__replyCount",
-    # 🟨 Keywords (Finance, Assets, Companies)
-    "counts__tesla", "counts__stock", "counts__market", "counts__price",
-    "counts__profit", "counts__loss", "counts__revenue", "counts__inflation", "counts__interest",
-    "counts__bitcoin", "counts__dogecoin", "counts__crypto", "counts__ethereum",
-    "counts__spacex", "counts__model", "counts__cybertruck", "counts__starship",
-    "counts__buy", "counts__sell",
-    # 🔵 VADER Sentiment Scores
-    "scores__neg", "scores__neu", "scores__pos", "scores__polarized",
-    # 🟣 NRC Emotions
-    "scores__anger", "scores__disgust", "scores__fear", "scores__joy",
-    "scores__neutral", "scores__sadness", "scores__surprise",
-    # 🟤 OCEAN Personality
-    "scores__Extroversion", "scores__Neuroticism", "scores__Agreeableness",
-    "scores__Conscientiousness", "scores__Openness",
-    # 🟠 Topics (ZeroShot)
-    "scores__arts_culture", "scores__business_entrepreneurs", "scores__celebrity_pop_culture",
-    "scores__diaries_daily_life", "scores__family", "scores__fashion_style", "scores__film_tv_video",
-    "scores__fitness_&_health", "scores__food_&_dining", "scores__gaming",
-    "scores__learning_educational", "scores__music", "scores__news_social_concern",
-    "scores__other_hobbies", "scores__relationships", "scores__science_technology",
-    "scores__sports", "scores__travel_adventure", "scores__youth_student_life",
-    # ⚫ Binary Flags
-    "binary__no_tweets"
+    # # 🔸 Twitter Daten
+    # # 🟦 Tweet Counts & Engagement
+    # "counts__tweet_count", "counts__nlp_tweet_count",
+    # "counts__likeCount", "counts__quoteCount", "counts__retweetCount", "counts__replyCount",
+    # # 🟨 Keywords (Finance, Assets, Companies)
+    # "counts__tesla", "counts__stock", "counts__market", "counts__price",
+    # "counts__profit", "counts__loss", "counts__revenue", "counts__inflation", "counts__interest",
+    # "counts__bitcoin", "counts__dogecoin", "counts__crypto", "counts__ethereum",
+    # "counts__spacex", "counts__model", "counts__cybertruck", "counts__starship",
+    # "counts__buy", "counts__sell",
+    # # 🔵 VADER Sentiment Scores
+    # "scores__neg", "scores__neu", "scores__pos", "scores__polarized",
+    # # 🟣 NRC Emotions
+    # "scores__anger", "scores__disgust", "scores__fear", "scores__joy",
+    # "scores__neutral", "scores__sadness", "scores__surprise",
+    # # 🟤 OCEAN Personality
+    # "scores__Extroversion", "scores__Neuroticism", "scores__Agreeableness",
+    # "scores__Conscientiousness", "scores__Openness",
+    # # 🟠 Topics (ZeroShot)
+    # "scores__arts_culture", "scores__business_entrepreneurs", "scores__celebrity_pop_culture",
+    # "scores__diaries_daily_life", "scores__family", "scores__fashion_style", "scores__film_tv_video",
+    # "scores__fitness_&_health", "scores__food_&_dining", "scores__gaming",
+    # "scores__learning_educational", "scores__music", "scores__news_social_concern",
+    # "scores__other_hobbies", "scores__relationships", "scores__science_technology",
+    # "scores__sports", "scores__travel_adventure", "scores__youth_student_life",
+    # # ⚫ Binary Flags
+    # "binary__no_tweets"
 ]
 
 # 🚀 Hauptlogik
